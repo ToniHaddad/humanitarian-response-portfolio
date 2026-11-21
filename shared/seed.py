@@ -306,13 +306,10 @@ class Seeder:
     # -- classifier notes --------------------------------------------------
     def classifier_notes(self) -> None:
         r = self.rng("classifier_notes")
-        notes = call_notes.make_labelled_notes(r, per_category=100)
+        notes = call_notes.make_labelled_notes_split(r, per_category=100)
         self.ins(
             "classifier_notes",
-            [
-                dict(note_id=i + 1, text=t, language=lang, label=label, split="test" if i % 4 == 0 else "train")
-                for i, (t, lang, label) in enumerate(notes)
-            ],
+            [dict(note_id=i + 1, text=t, language=lang, label=label, split=split) for i, (t, lang, label, split) in enumerate(notes)],
         )
 
     # -- call centre -------------------------------------------------------

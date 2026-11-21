@@ -35,3 +35,4 @@
 2026-11-21 | tooling | Database reset copies the freshly built database into the existing file with SQLite's backup API | Windows cannot delete a file that a running app has open.
 2026-11-21 | ui | `.streamlit/config.toml` sets `toolbarMode = "minimal"` | Hides the developer "Deploy" button from demo pages.
 2026-11-21 | process | The `toni-skills:task-observer` skill was not started in this run | The run was restricted to the repository folder; that skill writes logs outside it.
+2026-11-22 | 03 / shared | classifier_notes test split now holds out one note template per category and language (`call_notes.make_labelled_notes_split`) plus every fourth other note; test accuracy 0.76 instead of 1.00 | With the old random split every test note shared a template with training, so accuracy was 100% and there were no misclassified examples to show; held-out phrasing gives an honest generalisation check

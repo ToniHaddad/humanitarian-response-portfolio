@@ -193,3 +193,39 @@ def make_labelled_notes(rng: random.Random, per_category: int = 100, ambiguous_s
             rows.append((make_note(rng, category, language, ambiguous=ambiguous), language, category))
     rng.shuffle(rows)
     return rows
+
+
+def make_labelled_notes_split(
+    rng: random.Random,
+    per_category: int = 100,
+    ambiguous_share: float = 0.12,
+    held_out_templates: int = 1,
+    test_every: int = 4,
+) -> list[tuple[str, str, str, str]]:
+    """(text, language, label, split) tuples, half Arabic and half English per category.
+
+    The last `held_out_templates` templates of each category and language appear only in
+    the test split, so the test also measures phrasing the model never saw in training
+    (otherwise every test note shares a template with training notes and accuracy is a
+    meaningless 100%). The other notes go to the test split one time in `test_every`.
+    """
+    rows: list[tuple[str, str, str, bool]] = []
+    for category in CATEGORIES:
+        for i in range(per_category):
+            language = "ar" if i % 2 else "en"
+            templates = _EN[category] if language == "en" else _AR[category]
+            k = rng.randrange(len(templates))
+            text = templates[k].format(
+                n=rng.randint(2, 9),
+                when=rng.choice(_WHEN_EN),
+                when_ar=rng.choice(_WHEN_AR),
+                area="the area",
+                area_ar="المنطقة",
+            )
+            if rng.random() < ambiguous_share:
+                other = rng.choice([c for c in CATEGORIES if c != category])
+                extra = _SECOND_EN[other] if language == "en" else _SECOND_AR[other]
+                text = text.rstrip(".") + (", " if language == "en" else "، ") + extra + "."
+            rows.append((text, language, category, k >= len(templates) - held_out_templates))
+    rng.shuffle(rows)
+    return [(t, lang, c, "test" if held or n % test_every == 0 else "train") for n, (t, lang, c, held) in enumerate(rows)]
