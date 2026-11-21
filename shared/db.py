@@ -23,18 +23,35 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA busy_timeout = 30000")
+    # WAL lets the many reading apps keep reading while the API, scheduler or
+    # simulator commits. It is a property of the file, so setting it again is cheap.
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA synchronous = NORMAL")
+    except sqlite3.OperationalError:
+        pass  # another process holds a lock right now; the file keeps its current mode
     return conn
 
 
 @contextmanager
 def transaction(path: Path | str | None = None) -> Iterator[sqlite3.Connection]:
-    """Connection that commits on success and rolls back on any error."""
+    """Connection that commits on success and rolls back on any error.
+
+    The write lock is taken at the start (BEGIN IMMEDIATE), so a read-then-write
+    step such as next_id() or a stock check cannot race another writer: the second
+    writer waits here instead of computing the same ID or passing the same check.
+    Call next_id() and the stock functions only inside this context.
+    """
     conn = connect(path)
+    conn.isolation_level = None  # explicit transaction control
+    conn.execute("BEGIN IMMEDIATE")
     try:
         yield conn
-        conn.commit()
+        if conn.in_transaction:
+            conn.execute("COMMIT")
     except Exception:
-        conn.rollback()
+        if conn.in_transaction:
+            conn.execute("ROLLBACK")
         raise
     finally:
         conn.close()

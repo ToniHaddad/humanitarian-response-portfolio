@@ -46,7 +46,7 @@ def record_receipt(
     cur = conn.execute(
         """INSERT INTO stock_movements(warehouse_id, item_id, moved_at, movement_type, reason, quantity, reference, recorded_by)
            VALUES (?,?,?,?,?,?,?,?)""",
-        (warehouse_id, item_id, at or clock.iso(), "received", reason, quantity, reference, staff_id),
+        (warehouse_id, item_id, clock.normalize(at), "received", reason, quantity, reference, staff_id),
     )
     movement_id = int(cur.lastrowid)
     db.audit(
@@ -83,7 +83,7 @@ def record_dispatch(
         raise ValueError("quantity must be positive")
     if not allow_negative and on_hand_qty(conn, warehouse_id, item_id) < quantity:
         raise InsufficientStock(f"Only {on_hand_qty(conn, warehouse_id, item_id)} {item_id} on hand at {warehouse_id}")
-    when = at or clock.iso()
+    when = clock.normalize(at)
     dispatch_id = db.next_id(conn, "dispatches", "dispatch_id", "DSP-", 4)
     conn.execute(
         """INSERT INTO dispatches(dispatch_id, plan_id, convoy_id, warehouse_id, site_id, item_id, quantity, dispatched_at, dispatched_by)

@@ -841,7 +841,7 @@ class Seeder:
         queue.append(
             dict(
                 device_id="DEV-03",
-                record_id="INT-0037",
+                record_id="INT-DEV03-0001",  # device-scoped, so it cannot collide with the server's next INT- number
                 operation="create",
                 payload_json=json.dumps(
                     {"head_name": "Salma Rizk", "area_id": "AR-06", "household_size": 4, "primary_need": "shelter", "urgency": "high"},
@@ -2390,7 +2390,7 @@ def reset_database(path: Path | str | None = None, anchor: datetime | None = Non
     target = Path(path) if path else config.db_path()
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_name(target.name + ".building")
-    for p in (tmp, Path(str(tmp) + "-journal")):
+    for p in (tmp, Path(str(tmp) + "-journal"), Path(str(tmp) + "-wal"), Path(str(tmp) + "-shm")):
         if p.exists():
             p.unlink()
     conn = sqlite3.connect(tmp)

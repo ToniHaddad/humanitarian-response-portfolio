@@ -885,15 +885,20 @@ GROUP BY c.complaint_id;
 
 -- Latest position per vehicle (14, 17, 20).
 CREATE VIEW v_last_position AS
-SELECT p.vehicle_id, p.convoy_id, p.reported_at, p.x_km, p.y_km, p.speed_kmh, p.source
-FROM position_reports p
-JOIN (SELECT vehicle_id, MAX(reported_at) AS max_at FROM position_reports GROUP BY vehicle_id) last
-  ON last.vehicle_id = p.vehicle_id AND last.max_at = p.reported_at;
+SELECT vehicle_id, convoy_id, reported_at, x_km, y_km, speed_kmh, source
+FROM (
+    SELECT p.*, ROW_NUMBER() OVER (PARTITION BY vehicle_id ORDER BY reported_at DESC, report_id DESC) AS rn
+    FROM position_reports p
+)
+WHERE rn = 1;
 
 -- Current advisory per area: newest active decision (15, 16, 17).
 CREATE VIEW v_current_advisory AS
-SELECT a.*
-FROM advisories a
-JOIN (SELECT area_id, MAX(decided_at) AS max_at FROM advisories WHERE active = 1 GROUP BY area_id) cur
-  ON cur.area_id = a.area_id AND cur.max_at = a.decided_at
-WHERE a.active = 1;
+SELECT advisory_id, area_id, suggested_level, final_level, is_override, override_reason,
+       rule_basis_json, decided_by, decided_at, active
+FROM (
+    SELECT a.*, ROW_NUMBER() OVER (PARTITION BY area_id ORDER BY decided_at DESC, rowid DESC) AS rn
+    FROM advisories a
+    WHERE a.active = 1
+)
+WHERE rn = 1;

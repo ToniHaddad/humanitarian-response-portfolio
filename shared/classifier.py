@@ -8,6 +8,7 @@ returned as None so the operator fills the category in.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,7 +64,14 @@ def model_path() -> Path:
 def save(model: Pipeline, path: Path | None = None) -> Path:
     target = path or model_path()
     target.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, target)
+    # Write beside the target and swap it in, so another app never loads a half-written file.
+    tmp = target.with_name(f"{target.name}.{os.getpid()}.tmp")
+    joblib.dump(model, tmp)
+    try:
+        os.replace(tmp, target)
+    except PermissionError:
+        # Windows: another process has the cached model open. Its copy is as good as ours.
+        tmp.unlink(missing_ok=True)
     return target
 
 
@@ -71,7 +79,10 @@ def load_or_train(conn: sqlite3.Connection | None = None, retrain: bool = False)
     """Load the cached model, or train it from classifier_notes and cache it."""
     path = model_path()
     if path.exists() and not retrain:
-        return joblib.load(path)
+        try:
+            return joblib.load(path)
+        except Exception:
+            pass  # unreadable cache: train again below
     own = conn is None
     conn = conn or db.connect()
     try:

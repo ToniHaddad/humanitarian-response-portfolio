@@ -37,4 +37,22 @@ def iso(value: datetime | None = None) -> str:
 
 
 def parse(value: str) -> datetime:
-    return datetime.fromisoformat(value)
+    """Parse a stored or caller-supplied timestamp into naive local time."""
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+    return parsed
+
+
+def normalize(value: str | datetime | None) -> str:
+    """Any caller timestamp (offset, space separator, datetime, None) as the stored form.
+
+    Stored timestamps are compared as text, so every one must be naive local time
+    in the one format ISO. None means now.
+    """
+    if value is None:
+        return iso()
+    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).strip())
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+    return iso(parsed.replace(microsecond=0))

@@ -105,6 +105,6 @@ def record_position(
         raise ValueError(f"Unknown vehicle {vehicle_id}")
     cur = conn.execute(
         "INSERT INTO position_reports(vehicle_id, convoy_id, reported_at, x_km, y_km, speed_kmh, source) VALUES (?,?,?,?,?,?,?)",
-        (vehicle_id, convoy_id, at or clock.iso(), round(x_km, 2), round(y_km, 2), speed_kmh, source),
+        (vehicle_id, convoy_id, clock.normalize(at), round(x_km, 2), round(y_km, 2), speed_kmh, source),
     )
     return int(cur.lastrowid)

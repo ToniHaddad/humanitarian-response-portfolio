@@ -143,15 +143,17 @@ def badge(text: str, kind: str = "ok") -> str:
 def minutes_since(timestamp: str | datetime | None, now: datetime | None = None) -> float | None:
     if timestamp is None:
         return None
-    ts = timestamp if isinstance(timestamp, datetime) else datetime.fromisoformat(str(timestamp))
+    ts = timestamp if isinstance(timestamp, datetime) else clock.parse(str(timestamp))
     return round(((now or clock.now()) - ts).total_seconds() / 60.0, 1)
 
 
 def freshness_badge(timestamp: str | datetime | None, stale_after_minutes: float, now: datetime | None = None) -> str:
     """'Updated N min ago' badge that turns into a visible STALE badge past the limit."""
-    age = minutes_since(timestamp, now)
-    if age is None:
+    if timestamp is None:
         return badge("STALE: no data", "stale")
+    ts = timestamp if isinstance(timestamp, datetime) else clock.parse(str(timestamp))
+    # Unrounded, so the badge and shared.fleet.is_stale agree just past the limit.
+    age = ((now or clock.now()) - ts).total_seconds() / 60.0
     label = f"{int(age)} min ago" if age < 120 else f"{age / 60:.1f} h ago"
     if age > stale_after_minutes:
         return badge(f"STALE: last update {label}", "stale")
