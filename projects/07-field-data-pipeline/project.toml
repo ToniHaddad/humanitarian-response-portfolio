@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 7
+slug = "field-data-pipeline"
+title = "Field data pipeline"
+group = "B"
+status = "in_progress"
+user = "Information management officers"
+task = "Validate field team spreadsheet exports, load clean rows once, and see why rejected rows were quarantined."

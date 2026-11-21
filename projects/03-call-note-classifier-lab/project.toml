@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 3
+slug = "call-note-classifier-lab"
+title = "Call note classifier lab"
+group = "A"
+status = "in_progress"
+user = "Reviewers and data staff"
+task = "Train and check a local Arabic and English model that suggests a request category, and see where it is wrong."

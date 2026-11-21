@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 9
+slug = "unmet-needs-map"
+title = "Unmet needs map"
+group = "C"
+status = "in_progress"
+user = "Program managers"
+task = "Compare requested and delivered assistance by area, aid type and date, and see where the gap is largest."

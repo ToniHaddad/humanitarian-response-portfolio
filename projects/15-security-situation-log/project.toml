@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 15
+slug = "security-situation-log"
+title = "Security situation log"
+group = "D"
+status = "in_progress"
+user = "Duty officers"
+task = "Log and verify incidents, see an area status board, and confirm or override a suggested movement advisory."

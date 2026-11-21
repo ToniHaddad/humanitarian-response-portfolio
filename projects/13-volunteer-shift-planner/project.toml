@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 13
+slug = "volunteer-shift-planner"
+title = "Volunteer shift planner"
+group = "D"
+status = "in_progress"
+user = "Volunteer coordinators"
+task = "Suggest volunteer assignments by availability, location and training, and flag overlaps and unfilled roles."

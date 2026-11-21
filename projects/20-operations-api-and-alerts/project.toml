@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 20
+slug = "operations-api-and-alerts"
+title = "Operations API and alerts"
+group = "E"
+status = "in_progress"
+user = "Systems administrators and integrators"
+task = "Use a documented API with roles and an audit log, run alert rules, and check service health."

@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 5
+slug = "emergency-data-entry"
+title = "Field note to intake form"
+group = "B"
+status = "in_progress"
+user = "Data entry staff"
+task = "Turn a pasted Arabic or English field note into a draft intake form, fix flagged gaps, and save it."

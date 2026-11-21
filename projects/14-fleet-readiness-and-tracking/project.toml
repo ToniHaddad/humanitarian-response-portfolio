@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 14
+slug = "fleet-readiness-and-tracking"
+title = "Fleet readiness and tracking"
+group = "D"
+status = "in_progress"
+user = "Fleet and logistics officers"
+task = "See which vehicles are ready, due for service or not ready and why, and follow their last known positions."

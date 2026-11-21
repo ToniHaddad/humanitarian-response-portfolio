@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 6
+slug = "family-record-checker"
+title = "Family record checker"
+group = "B"
+status = "in_progress"
+user = "Registration officers"
+task = "Find likely duplicate household records across Arabic and Latin spellings and merge them with a recorded decision."

@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 11
+slug = "food-distribution-tracker"
+title = "Food distribution tracker"
+group = "C"
+status = "in_progress"
+user = "Distribution site supervisors"
+task = "Record parcels and ready-to-eat meals per household, see when coverage ends, and forecast next distributions."

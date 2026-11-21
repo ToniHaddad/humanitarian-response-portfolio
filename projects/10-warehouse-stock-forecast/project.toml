@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 10
+slug = "warehouse-stock-forecast"
+title = "Warehouse stock forecast"
+group = "C"
+status = "in_progress"
+user = "Warehouse and supply officers"
+task = "Track stock by warehouse and item, estimate stockout dates, and get replenishment quantities."

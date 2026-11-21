@@ -1,0 +1,6 @@
+# Test, style and screenshot tools. Playwright drives the installed Chrome or Edge;
+# no browser download is needed for scripts/screenshot.py.
+-r requirements.txt
+pytest==9.2.0
+ruff==0.17.6
+playwright==1.65.2

@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 16
+slug = "convoy-dispatch-planner"
+title = "Convoy dispatch planner"
+group = "D"
+status = "in_progress"
+user = "Logistics coordinators"
+task = "Plan a convoy's stops, vehicles and loads within capacity and advisories, then approve and track it."

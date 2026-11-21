@@ -1,0 +1,12 @@
+# Runtime dependencies, pinned. Every project uses this one file.
+streamlit==1.67.0
+pandas==3.1.1
+numpy==2.5.5
+plotly==7.1.0
+scikit-learn==1.9.1
+joblib==1.6.0
+rapidfuzz==3.14.6
+fastapi==0.165.0
+uvicorn==0.54.0
+APScheduler==3.11.3
+httpx==0.28.1

@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 12
+slug = "distribution-reconciliation-report"
+title = "Distribution reconciliation"
+group = "C"
+status = "in_progress"
+user = "Distribution coordinators and finance reviewers"
+task = "Reconcile planned, dispatched, distributed and returned parcels for a site and sign off a report."

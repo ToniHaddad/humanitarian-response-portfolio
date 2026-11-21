@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 17
+slug = "operations-room-live-board"
+title = "Operations room live board"
+group = "E"
+status = "in_progress"
+user = "Operations room staff"
+task = "Watch convoys, requests, advisories, stock alerts and today's distributions on a self-refreshing wall display."

@@ -1,0 +1,22 @@
+[project]
+name = "humanitarian-response-ai-portfolio"
+version = "0.1.0"
+description = "Twenty demo tools for emergency response teams over one shared SQLite database of fictional data."
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+extend-exclude = [".venv", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["shared"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

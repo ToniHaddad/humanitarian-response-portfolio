@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 1
+slug = "call-center-request-dashboard"
+title = "Request dashboard"
+group = "A"
+status = "in_progress"
+user = "Hotline coordinators and caseworkers"
+task = "Track service requests from intake to closure, see unassigned requests and overdue callbacks, and get a suggested category for each note."

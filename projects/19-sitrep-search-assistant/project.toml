@@ -1,0 +1,9 @@
+# Marker read by the homepage and the launcher. Set status = "built" only when
+# every definition-of-done item in CONTRIBUTING_AGENTS.md is true.
+number = 19
+slug = "sitrep-search-assistant"
+title = "Sitrep search assistant"
+group = "E"
+status = "in_progress"
+user = "Coordinators and analysts"
+task = "Search past situation reports and get the most relevant passages with their source and date."
