@@ -50,22 +50,22 @@ Port **8508**. Use your own database copy with `PORTFOLIO_DB_PATH` if other peop
 
 ## Screenshot
 
-![Offline field sync on freshly seeded data: device queue, sync status and resolved conflicts](screenshot.png)
+![Offline field sync on freshly seeded data: device queue, sync status, no open conflict and the past resolved conflict](screenshot.png)
 
 ## Try this demo
 
-The IDs come from the seed setting `demo.scenarios` → `p08`: record **INT-0021** (at server version **v2**), device **DEV-01**, and the offline device **DEV-03**.
+Start from freshly seeded data (`python -m shared.seed --reset`). The IDs come from the seed setting `demo.scenarios` -> `p08`: record **INT-0021** (at server version **v2** in the seed), device **DEV-01**, and the offline device **DEV-03**. Version numbers, IDs and field values below come from the seed's content, not from the day it ran; times shown on the page (last sync, last saved) follow the seed day and are not used in any step.
 
-1. In the sidebar choose **Field device: DEV-01** and turn **Connection (simulated)** off. The badge shows NO CONNECTION and **Sync now** is disabled.
-2. Under **Edit a record on the device** pick **INT-0021** (the caption says the device copy is based on server version v2). Set **Urgency** to `urgent`, change **Notes** to "Family moved in with relatives after the storm.", and click **Save edit to device queue**. The local queue shows a pending `update` with base version 2; **Pending in queue** goes up by 1.
-3. In **Server copy** pick **INT-0021**, raise **Household size** by 1, and click **Save edit on server**. The server copy is now **v3**.
+1. In the sidebar choose **Field device: DEV-01** and turn **Connection (simulated)** off. The badge shows NO CONNECTION and **Sync now** is disabled. Note the **Pending in queue** figure (the starting value) and, in the server panel, the household size and urgency of INT-0021.
+2. Under **Edit a record on the device** pick **INT-0021** (the caption says the device copy is based on server version v2). Set **Urgency** to a value different from the one shown (the seed has `high`; choose `urgent`), change **Notes** to "Family moved in with relatives after the storm.", and click **Save edit to device queue**. The local queue shows a pending `update` with base version 2; **Pending in queue** is 1 higher than at the start.
+3. In **Server copy** pick **INT-0021**, raise **Household size** by 1 from the value you noted, and click **Save edit on server**. The server copy is now **v3**.
 4. Turn **Connection** back on and click **Sync now**.
-5. **Expected result:** a warning says *0 applied, 1 conflict(s)*; **Conflicts waiting for a staff choice** shows **CNF-0002** for INT-0021 with the device version and the server version side by side and the three differing fields (household size, urgency, notes) highlighted. INT-0021 stays at **v3** with the server's data, the queue row is `conflict`, and the server panel warns that the record keeps the server version until staff choose.
-6. Choose **Choose field by field** (for example household size from the server, urgency and notes from the device), type a reason, pick a caseworker or coordinator as confirming staff, tick the box and click **Resolve conflict**. Without the tick, or without a reason, nothing changes. After confirmation INT-0021 is saved as **v4** with the chosen mix, and CNF-0002 moves to **Resolved conflicts** with who chose, when and why.
+5. **Expected result:** a warning says *0 applied, 1 conflict(s)*; **Conflicts waiting for a staff choice** shows a new conflict (**CNF-0002** on the standard seed, the next number after the one past conflict) for INT-0021 with the device version and the server version side by side and the three differing fields (household size, urgency, notes) highlighted. INT-0021 stays at **v3** with the server's data (the household size you set in step 3, the urgency you noted in step 1), the queue row is `conflict` (**In conflict** is 1, **Pending in queue** is back to its starting value), and the server panel warns that the record keeps the server version until staff choose.
+6. Choose **Choose field by field** (for example household size from the server, urgency and notes from the device), type a reason, pick a caseworker or coordinator as confirming staff, and click **Resolve conflict** first without ticking the box: the page says "Tick the confirmation box first. Nothing was changed." and the conflict stays open (so it does too without a reason). Then tick the box and click again. INT-0021 is saved as **v4** with the chosen mix (the server's household size, the device's urgency and notes), and the conflict moves to **Resolved conflicts** with who chose, when and why.
 
-Also try: choose **DEV-03** (offline, 2 pending changes), turn its connection on and click **Sync now**: the new record `INT-DEV03-0001` is created at version 1 and INT-0030 is updated, with no conflict.
+Also try: choose **DEV-03** (offline, with 2 pending changes in the seed), turn its connection on and click **Sync now**: the new record `INT-DEV03-0001` is created at version 1 and INT-0030 is updated to its next version, with no conflict; **Pending in queue** falls to 0.
 
-**Observed on a fresh copy of the database** (`python -m shared.seed --reset` into `data/agent08.db`, steps 1 to 5 run through the same functions the app calls, and steps 1 to 6 driven through Streamlit AppTest in the test suite): the device copy was based on v2; the offline sync was refused ("DEV-01 has no connection; changes stay in the local queue."); the server edit made v3; after reconnecting, the sync reported 0 applied and 1 conflict, CNF-0002, with the message "INT-0021 was changed on the server (v3) after the device's copy (v2): staff must choose."; INT-0021 stayed at v3 with the server's household size 6 and urgency `high`; the queue showed 1 in conflict and 0 pending. The screenshot above shows the page on freshly seeded data, before these steps, so it has no open conflict yet.
+The screenshot above shows the page on freshly seeded data, before these steps, so it has no open conflict yet.
 
 ## Tests
 
