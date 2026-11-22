@@ -13,7 +13,6 @@ import streamlit as st  # noqa: E402
 from shared import alerts, auth, clock, db, fleet, ports, scheduler, simulator, ui  # noqa: E402
 
 ui.page_header(project_number=20)
-auth.require_staff_login()
 
 APP_CHANNEL = "app:20"
 staff_id = ui.staff_selector(key="p20_staff")

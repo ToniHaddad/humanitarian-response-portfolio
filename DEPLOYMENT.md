@@ -58,7 +58,7 @@ Docker publishes ports by editing the firewall itself and can bypass simple host
 ## Staff login
 
 - **API:** in server mode every write (`POST`/`PUT`/`PATCH`) needs `Authorization: Bearer <PORTFOLIO_API_TOKEN>`. Reads do not. The API implements this in `shared/api.py` using `shared/auth.py`.
-- **Apps:** `shared/auth.py` provides `require_staff_login()` (username and password from `.env`, only active when `PORTFOLIO_MODE=server`). At the time of writing only the Project 20 app calls it. The other Streamlit apps do not ask for a login yet. See limitations.
+- **Apps:** in server mode (`PORTFOLIO_MODE=server`) the shared page header calls `shared.auth.require_staff_login()` (username and password from `.env`) on the homepage and on every app that can change data. The four read-only pages (03 classifier lab, 09 needs map, 17 operations room board, 19 sitrep search) stay open, so the board keeps updating with nobody logged in.
 
 ## Scheduled jobs
 
@@ -137,7 +137,7 @@ The database volume is kept. Take a backup first (`docker compose exec backup py
 - **Nothing here was run.** Docker was not available on the build machine. The `Dockerfile` was not built, `docker compose up` was not executed, and no health check ran inside a container.
 - What was checked, statically, by `tests/test_server_mode.py`: `docker-compose.yml` parses; every service has `restart: unless-stopped` and a health check; every service mounts the database volume and uses the same `TZ`; every published port is bound to `SERVER_BIND_ADDRESS` (default loopback), none to all interfaces; `.env.example` holds only placeholders; `.env` is in `.gitignore`. The backup and restore scripts and the health check functions were run for real on a temporary database and the row counts compared after restoring.
 - Docker-specific behaviour is unconfirmed: that the pinned requirements install on `python:3.12-slim`, that volume permissions work for the non-root user, that `docker compose` accepts the port range and the `$$(( ... ))` arithmetic in the backup health check, and the start-up time of the `apps` container (many Streamlit processes; `start_period` may need raising).
-- **The Streamlit apps are not yet behind a login, except Project 20.** `require_staff_login()` exists but the other apps do not call it, so anyone who can reach ports 8500-8520 can use them and change data. Until each app calls it, the private network is the only protection: keep `SERVER_BIND_ADDRESS` on the private address. Gating every app is a change in each app's `app.py` (or once in the shared page helper), outside the files this setup owns.
+- **The app login is one shared staff username and password, not one account per person.** The role is still chosen in the sidebar after login. The login gate is covered by tests (`tests/test_foundation_server_login.py`) but has not been tried on a running server.
 - The API's token is one shared secret, not per-user logins.
 - The placeholder check in `shared/auth.py` refuses only the lower-case `change-me`; `.env.example` uses exactly that value for that reason.
 - The `apps` health check needs every built app to answer; one slow app makes the whole service report unhealthy.

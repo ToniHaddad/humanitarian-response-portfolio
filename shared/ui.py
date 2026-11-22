@@ -86,6 +86,11 @@ def demo_banner() -> None:
     st.markdown(f'<div class="wrl-banner" role="note"><strong>DEMO</strong> · {html.escape(DEMO_BANNER[6:])}</div>', unsafe_allow_html=True)
 
 
+# Pages that only read (classifier lab, needs map, live board, sitrep search) stay
+# open in server mode, so the operations room board runs with nobody logged in.
+READ_ONLY_PROJECTS = frozenset({3, 9, 17, 19})
+
+
 def page_header(
     title: str | None = None,
     project_number: int | None = None,
@@ -115,6 +120,12 @@ def page_header(
         st.markdown(f'<div class="wrl-who">{html.escape(subtitle or who or "")}</div>', unsafe_allow_html=True)
     if project_number is not None:
         st.sidebar.markdown(f"[← Portfolio homepage]({ports.homepage_url()})")
+    if project_number not in READ_ONLY_PROJECTS:
+        # Server mode: every page that can change data stops here until a staff login
+        # succeeds. Local demo mode: this does nothing.
+        from shared import auth
+
+        auth.require_staff_login()
 
 
 def section(title: str, caption: str | None = None) -> None:
