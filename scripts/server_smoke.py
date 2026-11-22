@@ -91,8 +91,15 @@ def main() -> int:
     )
 
     # 2. API health and docs
-    status, text = http(f"{api}/health")
-    health = json.loads(text) if status == 200 else {}
+    # The scheduler probes the homepage every 30 s, so a probe made before the apps were up can
+    # keep the report unhealthy for up to a heartbeat: allow it two minutes to settle.
+    deadline = time.time() + 120
+    while True:
+        status, text = http(f"{api}/health")
+        health = json.loads(text) if status == 200 else {}
+        if health.get("healthy") is True or time.time() > deadline:
+            break
+        time.sleep(5)
     report(
         status == 200 and health.get("healthy") is True, "API /health reports healthy", f"HTTP {status}, healthy={health.get('healthy')}"
     )
