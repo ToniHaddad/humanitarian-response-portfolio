@@ -4,6 +4,6 @@ number = 2
 slug = "call-center-calls-and-complaints"
 title = "Calls and complaints"
 group = "A"
-status = "in_progress"
+status = "built"
 user = "Hotline operators and complaint owners"
 task = "Log every incoming call, link calls to new or existing complaints, follow up, and close complaints without double counting."
