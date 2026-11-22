@@ -678,10 +678,10 @@ def test_app_health_tab_lists_every_service_and_job(app_test) -> None:  # noqa: 
     at = app_test(20).run()
     assert not at.exception
     frames = [d.value for d in at.dataframe]
-    services = next(f for f in frames if "service_name" in f.columns)
-    jobs = next(f for f in frames if "last_success_at" in f.columns and "job_name" in f.columns)
-    assert {"api", "homepage", "position_simulator", "scheduler"} <= set(services["service_name"])
-    assert set(jobs["job_name"]) == {"pipeline_ingest", "alert_evaluation", "position_simulator", "db_backup"}
+    services = next(f for f in frames if "Service" in f.columns)
+    jobs = next(f for f in frames if "Last success" in f.columns and "Job" in f.columns)
+    assert {"api", "homepage", "position_simulator", "scheduler"} <= set(services["Service"])
+    assert set(jobs["Job"]) == {"pipeline_ingest", "alert_evaluation", "position_simulator", "db_backup"}
 
 
 def _p20_ops():

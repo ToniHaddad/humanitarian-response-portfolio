@@ -8,6 +8,7 @@ for p in (str(ROOT), str(HERE)):
         sys.path.insert(0, p)
 
 import p20_ops as p20  # noqa: E402
+import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from shared import alerts, auth, clock, confirm, db, fleet, ports, scheduler, simulator, ui  # noqa: E402
@@ -60,7 +61,8 @@ with tab_alerts:
         "Evaluated on a schedule by the alert_evaluation job, or now with the button. Thresholds can be changed here or through the API.",
     )
     with p20.read() as conn:
-        st.dataframe(p20.rules_frame(conn), hide_index=True, width="stretch")
+        rules_df = p20.rules_frame(conn)
+    ui.table(p20.rules_display(rules_df))
     if st.button("Evaluate alert rules now", type="primary", disabled=not allowed("evaluate"), help=needs("evaluate")):
         # Through the scheduler's run_job, so this run is recorded in job_runs like a scheduled one.
         run = scheduler.run_job("alert_evaluation", "manual", requested_by=staff_id, channel=APP_CHANNEL)
@@ -71,6 +73,7 @@ with tab_alerts:
             rules = {r["rule_id"]: r for r in alerts.list_rules(conn)}
         rule_id = st.selectbox("Rule", list(rules), format_func=lambda r: f"{r} · {rules[r]['name']}", key="p20_rule")
         rule = rules[rule_id]
+        st.caption(f"What it checks: {rule['description']}")
         new_threshold = st.number_input("Threshold", min_value=0.0, value=float(rule["threshold"]), step=1.0, key=f"p20_thr_{rule_id}")
         new_enabled = st.checkbox("Enabled", value=bool(rule["enabled"]), key=f"p20_en_{rule_id}")
         confirmed_rule = ui.confirm_action(
@@ -95,7 +98,16 @@ with tab_alerts:
         frame = p20.alerts_frame(conn, p20.STATUS_FILTERS[choice])
         options = p20.open_alert_options(conn)
     st.caption(f"{len(frame)} alerts")
-    st.dataframe(frame, hide_index=True, width="stretch")
+    ui.table(p20.alerts_display(frame))
+    if len(frame):
+        with st.expander("Message and times for one alert"):
+            msg_id = st.selectbox("Alert", list(frame["alert_id"]), key="p20_msg_pick", format_func=lambda a: f"#{a}")
+            row = frame[frame["alert_id"] == msg_id].iloc[0]
+            st.write(row["message"])
+            st.caption(
+                f"Fired {row['fired_at']} · acknowledged {row['acknowledged_at'] or 'no'} by {row['acknowledged_by'] or 'nobody'} · "
+                f"resolved {row['resolved_at'] or 'no'}"
+            )
 
     ui.section(
         "Acknowledge an alert",
@@ -166,9 +178,9 @@ with tab_jobs:
                 alerts.set_stale_limit(conn, minutes, str(staff_id), channel=APP_CHANNEL)
             done(f"Stale-position limit set to {minutes:g} minutes (setting and stale-position rule).")
     with p20.read() as conn:
-        st.dataframe(p20.positions_frame(conn), hide_index=True, width="stretch")
+        ui.table(p20.positions_display(p20.positions_frame(conn)))
         st.markdown("**Recent job runs**")
-        st.dataframe(p20.recent_runs(conn), hide_index=True, width="stretch")
+        ui.table(p20.runs_display(p20.recent_runs(conn)))
 
 # -- health ---------------------------------------------------------------------
 with tab_health:
@@ -178,9 +190,9 @@ with tab_health:
     )
     st.markdown("Overall: " + (ui.badge("HEALTHY", "ok") if healthy else ui.badge("NEEDS ATTENTION", "bad")), unsafe_allow_html=True)
     st.markdown("**Services**")
-    st.dataframe(services_df, hide_index=True, width="stretch")
+    ui.table(p20.services_display(services_df))
     st.markdown("**Scheduled jobs and last successful run**")
-    st.dataframe(jobs_df, hide_index=True, width="stretch")
+    ui.table(p20.jobs_display(jobs_df))
 
 # -- audit ----------------------------------------------------------------------
 with tab_audit:
@@ -188,7 +200,17 @@ with tab_audit:
     with p20.read() as conn:
         channels = p20.audit_channels(conn)
         channel = st.selectbox("Channel", ["All", *channels], key="p20_audit_channel")
-        st.dataframe(p20.audit_frame(conn, None if channel == "All" else channel), hide_index=True, width="stretch")
+        audit_df = p20.audit_frame(conn, None if channel == "All" else channel)
+        ui.table(p20.audit_display(audit_df))
+        if len(audit_df):
+            with st.expander("Values before and after, for one change"):
+                pick = st.selectbox("Audit row", list(audit_df["audit_id"]), key="p20_audit_pick", format_func=lambda a: f"#{a}")
+                row = audit_df[audit_df["audit_id"] == pick].iloc[0]
+                st.markdown("Before")
+                st.code(row["before_json"] or "none", language="json")
+                st.markdown("After")
+                st.code(row["after_json"] or "none", language="json")
+                st.caption(f"Reason: {row['reason'] or 'none'}")
 
 # -- api ------------------------------------------------------------------------
 with tab_api:
@@ -201,9 +223,5 @@ with tab_api:
         f"- Offline reference (no internet needed): [{base}/reference]({base}/reference)\n- Swagger UI: [{base}/docs]({base}/docs)\n- OpenAPI JSON: [{base}/openapi.json]({base}/openapi.json)"
     )
     st.markdown("Read endpoints are open. Every write needs the header `X-Staff-Id`; in server mode also `Authorization: Bearer <token>`.")
-    st.dataframe(
-        [{"action": k, "allowed roles": ", ".join(v)} for k, v in auth.ROLES.items()],
-        hide_index=True,
-        width="stretch",
-    )
+    ui.table(pd.DataFrame([{"Action": k, "Allowed roles": ", ".join(v)} for k, v in auth.ROLES.items()]))
     st.code(f'curl -X POST {base}/alerts/evaluate -H "X-Staff-Id: CRD-01"', language="bash")

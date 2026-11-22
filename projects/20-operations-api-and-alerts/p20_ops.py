@@ -138,3 +138,66 @@ def audit_frame(conn: sqlite3.Connection, channel: str | None = None, limit: int
 
 def audit_channels(conn: sqlite3.Connection) -> list[str]:
     return [r[0] for r in conn.execute("SELECT DISTINCT channel FROM audit_log ORDER BY channel")]
+
+
+# -- displayed frames: short headers with units, the columns a person needs first ------------------
+def short(value: Any, limit: int = 60) -> Any:
+    """Cut long text for a table cell (the full text is shown in a detail view)."""
+    if isinstance(value, str) and len(value) > limit:
+        return value[: limit - 3].rstrip() + "..."
+    return value
+
+
+def _stamp(value: Any) -> Any:
+    return value.replace("T", " ")[:19] if isinstance(value, str) else value
+
+
+def rules_display(df: pd.DataFrame) -> pd.DataFrame:
+    out = df[["rule_id", "name", "threshold", "enabled", "severity", "rule_type"]].copy()
+    out.columns = pd.Index(["Rule", "Name", "Threshold", "On", "Severity", "Type"])
+    return out
+
+
+def alerts_display(df: pd.DataFrame) -> pd.DataFrame:
+    out = df[["alert_id", "status", "severity", "rule_name", "entity_ref", "observed_value", "threshold", "fired_at", "acknowledged_by"]].copy()
+    out["fired_at"] = out["fired_at"].map(_stamp)
+    out.columns = pd.Index(["Alert", "Status", "Severity", "Rule", "Entity", "Observed", "Threshold", "Fired at", "Ack by"])
+    return out
+
+
+def positions_display(df: pd.DataFrame) -> pd.DataFrame:
+    out = df[["vehicle_id", "stale", "minutes_since_report", "x_km", "y_km", "speed_kmh", "source", "convoy_id"]].copy()
+    out.columns = pd.Index(["Vehicle", "Stale", "Age (min)", "East (km)", "North (km)", "Speed (km/h)", "Source", "Convoy"])
+    return out
+
+
+def runs_display(df: pd.DataFrame) -> pd.DataFrame:
+    out = df[["job_run_id", "job_name", "trigger", "status", "started_at", "detail"]].copy()
+    out["started_at"] = out["started_at"].map(_stamp)
+    out["detail"] = out["detail"].map(short)
+    out.columns = pd.Index(["Run", "Job", "Trigger", "Status", "Started", "Result"])
+    return out
+
+
+def services_display(df: pd.DataFrame) -> pd.DataFrame:
+    out = df[["service_name", "status", "silent", "minutes_since_seen", "last_seen_at", "detail"]].copy()
+    out["last_seen_at"] = out["last_seen_at"].map(_stamp)
+    out["detail"] = out["detail"].map(short)
+    out.columns = pd.Index(["Service", "Status", "Silent", "Age (min)", "Last seen", "Detail"])
+    return out
+
+
+def jobs_display(df: pd.DataFrame) -> pd.DataFrame:
+    out = df[["job_name", "overdue", "last_run_status", "last_run_at", "last_success_at", "minutes_since_success", "interval_seconds"]].copy()
+    out["last_run_at"] = out["last_run_at"].map(_stamp)
+    out["last_success_at"] = out["last_success_at"].map(_stamp)
+    out.columns = pd.Index(["Job", "Overdue", "Last run", "Last run at", "Last success", "Since success (min)", "Every (s)"])
+    return out
+
+
+def audit_display(df: pd.DataFrame) -> pd.DataFrame:
+    out = df[["audit_id", "at", "actor_id", "actor_role", "channel", "action", "entity_table", "entity_id", "reason"]].copy()
+    out["at"] = out["at"].map(_stamp)
+    out["reason"] = out["reason"].map(short)
+    out.columns = pd.Index(["Audit", "At", "Who", "Role", "Channel", "Action", "Table", "Entity", "Reason"])
+    return out
