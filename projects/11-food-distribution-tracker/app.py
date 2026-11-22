@@ -163,7 +163,7 @@ ui.section(
     "2. Households at this site and when their parcel coverage ends",
     f"Parcel coverage end = the latest end date over each household's parcel distributions, recomputed from the stored "
     f"quantities with the {in_use_label}. Ready-to-eat meals never extend it; their days are shown in a separate column. "
-    "'Stored parcel days' is the value saved when the distribution was recorded. Days left: 0 means parcel coverage ends "
+    "'Parcel days (stored)' is the value saved when the distribution was recorded; 'Parcel days (in use)' is recomputed with the assumptions in use. Days left: 0 means parcel coverage ends "
     "today, a negative number means it ended that many days ago. A household belongs to the site of its most recent "
     "distribution, or to the site serving its area if it has none. Click a column header to sort.",
 )
@@ -173,15 +173,13 @@ hh_table = pd.DataFrame(
         {
             "Household": hc.household_id,
             "Head of household": hc.head_name,
-            "Size (people)": hc.household_size,
-            "Distributions": hc.distributions,
-            "Last distribution": show_date(hc.last_distribution_date),
-            "Stored parcel days (at recording)": hc.last_stored_days,
-            "Parcel days (assumptions in use)": hc.last_recomputed_days,
+            "People": hc.household_size,
             "Parcel coverage ends": show_date(hc.coverage_end),
             "Days left": hc.days_left(TODAY),
-            "Meal days (last distribution, separate)": hc.last_meal_days,
-            "Site from": hc.site_source,
+            "Last distribution": show_date(hc.last_distribution_date),
+            "Parcel days (stored)": hc.last_stored_days,
+            "Parcel days (in use)": hc.last_recomputed_days,
+            "Meal days (separate)": hc.last_meal_days,
         }
         for hc in sorted(at_site, key=lambda h: (h.coverage_end or date.min, h.household_id))
     ]
@@ -235,8 +233,8 @@ ui.metric_row(
 
 def due_status(end: date | None) -> str:
     if end is None:
-        return "no parcels recorded"
-    return "already ended" if end < TODAY else "ends before the window's last day"
+        return "no parcels"
+    return "already ended" if end < TODAY else "ends in window"
 
 
 ui.table(
@@ -244,25 +242,25 @@ ui.table(
         [
             {
                 "Household": d.household.household_id,
-                "Size (people)": d.household.household_size,
-                "Parcel coverage ends": show_date(d.household.coverage_end),
+                "People": d.household.household_size,
+                "Parcel type": ITEM_NAMES[d.parcel_item_id].replace(" food parcel", ""),
+                "Parcels": d.parcels,
+                "Ready meals": d.rte_meals,
+                "Coverage ends": show_date(d.household.coverage_end, "none recorded"),
                 "Status": due_status(d.household.coverage_end),
-                "Parcel type": ITEM_NAMES[d.parcel_item_id],
-                "Parcels (parcels)": d.parcels,
                 "New arrival": "yes" if d.new_arrival else "no",
-                "Ready-to-eat meals (meals)": d.rte_meals,
             }
             for d in fc_in_use.due
         ],
         columns=[
             "Household",
-            "Size (people)",
-            "Parcel coverage ends",
-            "Status",
+            "People",
             "Parcel type",
-            "Parcels (parcels)",
+            "Parcels",
+            "Ready meals",
+            "Coverage ends",
+            "Status",
             "New arrival",
-            "Ready-to-eat meals (meals)",
         ],
     ),
     height=300,
@@ -274,7 +272,23 @@ if plans_in_window:
         "Plans already exist for this site in the window. They are part of the warehouse forecast in Project 10; "
         "check them before planning these households again."
     )
-    ui.table(pd.DataFrame(plans_in_window), key="p11_existing_plans")
+    plans_df = pd.DataFrame(plans_in_window)
+    plans_df["unit"] = plans_df["item_id"].map(lambda i: "meals" if i == p11.RTE_MEAL else "parcels")
+    plans_df = plans_df[["plan_id", "planned_date", "item_id", "planned_quantity", "unit", "planned_households", "status"]]
+    ui.table(
+        plans_df.rename(
+            columns={
+                "plan_id": "Plan",
+                "planned_date": "Date",
+                "item_id": "Item",
+                "planned_quantity": "Quantity",
+                "unit": "Unit",
+                "planned_households": "Households",
+                "status": "Status",
+            }
+        ),
+        key="p11_existing_plans",
+    )
 
 # ==================================================================================
 ui.section(
@@ -282,19 +296,24 @@ ui.section(
     "Edit the values and press 'Show the effect' to compare the forecast with the saved and the edited values. "
     "Saving them changes every forecast, so it needs a coordinator's confirmation.",
 )
+ASSUMPTION_NAMES = {
+    "person_days.ITM-FP-STD": "Person-days per standard parcel",
+    "person_days.ITM-FP-SML": "Person-days per small parcel",
+    "meals_per_person_per_day": "Meals per person per day",
+    "persons_per_standard_parcel": "People per standard parcel",
+    "rte_meals_per_person_per_visit": "Ready meals per person per visit",
+    "small_parcel_max_household_size": "Largest household for a small parcel",
+}
+assumption_df = pd.DataFrame(rows)
+assumption_df["Assumption"] = assumption_df["assumption_key"].map(lambda k: ASSUMPTION_NAMES.get(k, k))
+assumption_df["Updated"] = assumption_df["updated_at"].astype(str).str[:10] + " by " + assumption_df["updated_by"].astype(str)
 ui.table(
-    pd.DataFrame(rows).rename(
-        columns={
-            "assumption_key": "Assumption",
-            "value": "Saved value",
-            "unit": "Unit",
-            "description": "Meaning",
-            "updated_at": "Updated at",
-            "updated_by": "Updated by",
-        }
-    ),
+    assumption_df[["Assumption", "value", "unit", "Updated"]].rename(columns={"value": "Saved value", "unit": "Unit"}),
     key="p11_assumptions",
 )
+with st.expander("What each assumption means"):
+    for r in rows:
+        st.markdown(f"- **{ASSUMPTION_NAMES.get(r['assumption_key'], r['assumption_key'])}**: {r['description']}")
 
 
 WHATIF_LABELS = {
