@@ -66,15 +66,15 @@ ui.section("Accuracy per category", "Recall: of the test notes truly in a catego
 cat_df = pd.DataFrame(ev.per_category)
 cat_df["Category"] = cat_df["category"].map(label)
 cat_df["Accuracy (%)"] = (cat_df["accuracy"] * 100).round(1)
-left, right = st.columns([3, 2])
+left, right = st.columns([1, 1])
 with left:
     fig = charts.bar(cat_df, "Category", "Accuracy (%)", "Category", "Accuracy (%)")
     fig.update_yaxes(range=[0, 100])
     st.plotly_chart(fig, width="stretch")
 with right:
     ui.table(
-        cat_df.rename(columns={"notes": "Test notes (count)", "correct": "Correct (count)"})[
-            ["Category", "Test notes (count)", "Correct (count)", "Accuracy (%)"]
+        cat_df.rename(columns={"notes": "Notes (count)", "correct": "Correct (count)"})[
+            ["Category", "Notes (count)", "Correct (count)", "Accuracy (%)"]
         ]
     )
 weak = p03.weakest_category(ev)

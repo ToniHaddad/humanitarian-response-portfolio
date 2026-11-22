@@ -29,7 +29,7 @@ DISTANCE_CUTOFF_KM = 40.0  # at or beyond this distance the distance score is 0
 STATUSES = ("proposed", "approved", "accepted", "declined", "support_received", "support_not_received")
 NEXT_STEP = {
     "proposed": "Approve the referral (staff confirmation)",
-    "approved": "Record the provider's response",
+    "approved": "Record the provider's response (staff confirmation)",
     "accepted": "Confirm whether the family received support (staff confirmation)",
     "declined": "Ended: provider declined. Find another service.",
     "support_received": "Closed: family received support.",
@@ -319,11 +319,11 @@ def approve(conn: sqlite3.Connection, referral_id: str, confirmed_by: str | None
     )
 
 
-def record_provider_response(conn: sqlite3.Connection, referral_id: str, response: str, note: str, recorded_by: str) -> None:
-    """Record the provider's answer (accepted or declined) on an approved referral."""
+def record_provider_response(conn: sqlite3.Connection, referral_id: str, response: str, note: str, confirmed_by: str | None) -> None:
+    """Record the provider's answer (accepted or declined) on an approved referral (needs staff confirmation)."""
+    recorded_by = confirm.require_confirmation(conn, confirmed_by, APPROVER_ROLES)
     if response not in ("accepted", "declined"):
         raise ValueError("Response must be 'accepted' or 'declined'.")
-    _require_staff(conn, recorded_by)
     ref = _get(conn, referral_id)
     if ref["status"] != "approved":
         raise InvalidTransition(f"{referral_id} is {ref['status']}; a response can only be recorded on an approved referral.")

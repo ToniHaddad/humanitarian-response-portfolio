@@ -204,7 +204,30 @@ ui.section("Recent drafts and saved records")
 d_col, r_col = st.columns(2)
 with d_col:
     st.markdown("**Drafts**")
-    ui.table(pd.DataFrame(recent_d))
+    ui.table(
+        pd.DataFrame(
+            {
+                "Draft": [d["draft_id"] for d in recent_d],
+                "Status": [d["status"] for d in recent_d],
+                "Saved as": [d["saved_record_id"] or "" for d in recent_d],
+                "Lang.": [d["language"] for d in recent_d],
+                "Created": [str(d["created_at"])[:16].replace("T", " ") for d in recent_d],
+                "By": [d["created_by"] for d in recent_d],
+            }
+        )
+    )
 with r_col:
     st.markdown("**Saved records (data entry)**")
-    ui.table(pd.DataFrame(recent_r))
+    ui.table(
+        pd.DataFrame(
+            {
+                "Record": [r["record_id"] for r in recent_r],
+                "Head of household": [r["head_name"] for r in recent_r],
+                "Need": [str(r["primary_need"] or "").replace("_", " ") for r in recent_r],
+                "Urgency": [r["urgency"] for r in recent_r],
+                "Size (people)": [r["household_size"] for r in recent_r],
+                "Area": [r["area_id"] for r in recent_r],
+                "Ver.": [r["version"] for r in recent_r],
+            }
+        )
+    )

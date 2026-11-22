@@ -215,6 +215,18 @@ def test_status_order_is_enforced(conn: sqlite3.Connection) -> None:
     assert _status(conn, rid) == "approved"
 
 
+def test_provider_response_without_confirmation_raises_and_changes_nothing(conn: sqlite3.Connection) -> None:
+    rid = _new_referral(conn)
+    p04.approve(conn, rid, "CW-01")
+    audits = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+    for who in (None, "", "NOBODY", "OPR-01"):  # missing, blank, unknown, wrong role
+        with pytest.raises(ConfirmationRequired):
+            p04.record_provider_response(conn, rid, "accepted", "", who)
+    row = conn.execute("SELECT status, provider_response FROM referrals WHERE referral_id = ?", (rid,)).fetchone()
+    assert (row["status"], row["provider_response"]) == ("approved", None)
+    assert conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] == audits
+
+
 def test_approve_without_confirmation_raises_and_changes_nothing(conn: sqlite3.Connection) -> None:
     rid = _new_referral(conn)
     audits = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
@@ -301,7 +313,11 @@ def test_app_full_flow_through_ui(app_test, db_path) -> None:
     assert not at.exception
     with db.connect(db_path) as c:
         assert _status(c, "REF-0031") == "approved"
-    # provider response
+    # provider response: refused without the tick, done with it
+    next(b for b in at.button if b.label == "Record provider response").click().run()
+    with db.connect(db_path) as c:
+        assert _status(c, "REF-0031") == "approved"
+    next(c for c in at.checkbox if c.key == "confirm_tick_response_REF-0031").check()
     next(b for b in at.button if b.label == "Record provider response").click().run()
     with db.connect(db_path) as c:
         assert _status(c, "REF-0031") == "accepted"

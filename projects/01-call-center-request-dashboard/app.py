@@ -88,17 +88,15 @@ def list_view(df: pd.DataFrame, extra: list[str] | None = None) -> pd.DataFrame:
             "Request": df["request_id"],
             "Next action": df["next_action"],
             "Priority": df["priority"],
-            "Status": df["status"].str.replace("_", " "),
             "Category": df["category"].map(lambda c: p01.category_label(c) if isinstance(c, str) else "(not confirmed)"),
+            "Area": df["area"],
             "Assigned to": df["assigned_to"].fillna(""),
             "Callback due": df["callback_due_at"].map(short),
         }
     )
     if extra and "hours" in extra:
         out["Hours overdue (h)"] = df["hours_overdue"]
-    out["Linked calls (count)"] = df["calls"]
-    out["Area"] = df["area"]
-    out["Created"] = df["created_at"].map(short)
+    out["Calls (count)"] = df["calls"]
     return out
 
 
@@ -221,7 +219,8 @@ with tab_detail:
             run_step(lambda c: p01.close(c, request_id, outcome, confirmer), f"{request_id} closed with outcome {outcome}.")
 
     ui.section(f"Timeline ({len(events)} events)")
-    ui.table(events.rename(columns={"at": "Time", "event_type": "Event", "staff_id": "Staff", "detail": "Detail"}))
+    events_view = events.assign(at=events["at"].map(lambda t: str(t)[:16].replace("T", " ")))
+    ui.table(events_view.rename(columns={"at": "Time", "event_type": "Event", "staff_id": "Staff", "detail": "Detail"}))
 
 with tab_intake:
     ui.section(

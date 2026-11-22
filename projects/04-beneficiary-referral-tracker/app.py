@@ -141,9 +141,19 @@ with tab_list:
     counts = {s: sum(1 for r in all_rows if r["status"] == s) for s in ref.STATUSES}
     ui.metric_row([(s.replace("_", " ").capitalize() + " (count)", counts[s]) for s in ref.STATUSES])
     ui.table(
-        pd.DataFrame(rows)[["referral_id", "household_id", "provider_name", "service_name", "status", "next_step", "match_score"]]
+        pd.DataFrame(
+            {
+                "Referral": [r["referral_id"] for r in rows],
+                "Household": [r["household_id"] for r in rows],
+                "Status": [r["status"].replace("_", " ") for r in rows],
+                "Next step": [r["next_step"] for r in rows],
+                "Service": [r["service_name"] for r in rows],
+                "Provider": [r["provider_name"] for r in rows],
+                "Score (0-1)": [r["match_score"] for r in rows],
+            }
+        )
         if rows
-        else pd.DataFrame(columns=["referral_id", "status"])
+        else pd.DataFrame(columns=["Referral", "Status"])
     )
     if rows:
         chosen = st.selectbox("Open a referral", [r["referral_id"] for r in rows], key="p04_open")
@@ -166,14 +176,20 @@ with tab_list:
                 st.session_state["p04_flash"] = f"{chosen} approved by {staff}."
                 st.rerun()
         elif r["status"] == "approved":
-            with st.form(f"p04_resp_{chosen}"):
-                resp = st.radio("Provider response", ["accepted", "declined"], horizontal=True)
-                note = st.text_input("Note")
-                if st.form_submit_button("Record provider response", type="primary"):
-                    with db.transaction() as c:
-                        ref.record_provider_response(c, chosen, resp, note, acting or "")
-                    st.session_state["p04_flash"] = f"Provider response recorded: {resp}."
-                    st.rerun()
+            resp = st.radio("Provider response", ["accepted", "declined"], horizontal=True, key=f"p04_resp_{chosen}")
+            note = st.text_input("Note", key=f"p04_respnote_{chosen}")
+            staff = ui.confirm_action(
+                f"response_{chosen}",
+                f"Confirm that the provider **{resp}** referral {chosen} to {r['service_name']} at {r['provider_name']}?",
+                roles=ROLES,
+                button_label="Record provider response",
+                default_staff=acting,
+            )
+            if staff:
+                with db.transaction() as c:
+                    ref.record_provider_response(c, chosen, resp, note, confirmed_by=staff)
+                st.session_state["p04_flash"] = f"Provider response recorded: {resp}, confirmed by {staff}."
+                st.rerun()
         elif r["status"] == "accepted":
             got = st.radio("Did the family receive support?", ["Yes", "No"], horizontal=True, key=f"p04_got_{chosen}")
             note = st.text_input("Note", key=f"p04_outnote_{chosen}")

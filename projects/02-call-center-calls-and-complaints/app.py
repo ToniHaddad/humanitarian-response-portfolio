@@ -60,7 +60,18 @@ with right:
         f"A topic is recurring when {p02.RECURRING_MIN_COMPLAINTS} or more complaints were opened in the period. "
         "Calls = calls in the period about complaints of that topic; repeat calls = those marked as repeats."
     )
-    ui.table(topics.rename(columns={"complaints": "complaints (count)", "calls": "calls (count)", "repeat_calls": "repeat calls (count)"}))
+    topics_view = topics.assign(topic=topics["topic"].str.replace("_", " "), recurring=topics["recurring"].str.capitalize())
+    ui.table(
+        topics_view.rename(
+            columns={
+                "topic": "Topic",
+                "complaints": "Complaints (count)",
+                "calls": "Calls (count)",
+                "repeat_calls": "Repeats (count)",
+                "recurring": "Recurring",
+            }
+        )
+    )
 
 # ---------------------------------------------------------------- log a call
 ui.section("Log a call", "Every incoming call is logged here, including information inquiries.")
@@ -131,7 +142,20 @@ if submitted:
 st.markdown("**Latest calls**")
 with db.connect() as conn:
     latest = p02.recent_calls(conn)
-ui.table(latest.drop(columns=["notes"]))
+latest_view = pd.DataFrame(
+    {
+        "Call": latest["call_id"],
+        "Received": latest["received_at"].map(lambda t: str(t)[:16].replace("T", " ")),
+        "Type": latest["call_type"].str.replace("_", " "),
+        "Repeat": latest["is_repeat"].map({1: "yes", 0: "no"}),
+        "Complaint": latest["complaint_id"].fillna(""),
+        "Request": latest["request_id"].fillna(""),
+        "Area": latest["area_id"],
+        "Lang.": latest["language"],
+        "Operator": latest["operator_id"],
+    }
+)
+ui.table(latest_view)
 
 # ---------------------------------------------------------------- complaint handling
 ui.section("Complaint handling", "Assign an owner, record follow-up, close with a resolution. Closing needs staff confirmation.")
@@ -150,7 +174,8 @@ if selected:
     if row.get("resolution"):
         ui.show_text(row["resolution"], "Resolution")
     st.markdown("**Timeline**")
-    ui.table(history)
+    history_view = history.assign(when=history["when"].map(lambda t: str(t)[:16].replace("T", " ")))
+    ui.table(history_view.rename(columns={"when": "When", "event": "Event", "by_staff": "By", "detail": "Detail"}))
 
     if row.get("status") != "closed":
         a1, a2 = st.columns(2)

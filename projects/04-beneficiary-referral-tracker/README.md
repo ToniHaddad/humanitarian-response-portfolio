@@ -25,7 +25,7 @@ Services that do not accept new referrals, or have no places left this week, are
 
 Text handling: lower-casing, simple tokenising, Arabic diacritics removed, alef/ya/ta-marbuta forms unified, the Arabic article and the one-letter prefixes waw/ba/lam tolerated, English plural "s" tolerated. If the caseworker does not choose a category, the category with the most keyword hits across the directory is used.
 
-Referral lifecycle: `proposed` -> `approved` (staff confirmation) -> provider response `accepted` or `declined` (declined ends it) -> family received support, yes or no (staff confirmation) -> `support_received` or `support_not_received`. Out-of-order steps raise `InvalidTransition`. Every change is written to the audit log (`channel = app:04`).
+Referral lifecycle: `proposed` -> `approved` (staff confirmation) -> provider response `accepted` or `declined` (staff confirmation; declined ends it) -> family received support, yes or no (staff confirmation) -> `support_received` or `support_not_received`. Out-of-order steps raise `InvalidTransition`. Every change is written to the audit log (`channel = app:04`).
 
 ## Inputs
 
@@ -67,8 +67,8 @@ Nothing in the matching depends on the date: the household register, the service
 2. Enter the need `My child has had a fever for three days and we need medicine.` and leave Category on "infer from the need text".
 3. **Expected:** category used is Health; the top match is **General clinic at Harbor Flats Health Point** (score 0.74, 1.4 km, 10 of 80 places left), explained as "Category match: health. Keywords found: fever. 1.4 km from Harbor Flats (the family's area centre). 10 of 80 places left this week. Eligibility: Free for all residents; children prioritised."
 4. Open the first match and click **Create referral from this match**. **Expected:** a message "Referral REF-... created with status proposed" (note the ID; it is the next free referral number).
-5. Go to the **Referrals** tab, open that referral, tick the confirmation box and click **Approve referral**. **Expected:** "REF-... approved by <staff>", status approved, next step "Record the provider's response". Clicking **Approve referral** without the tick changes nothing.
-6. Choose **accepted**, add a note, click **Record provider response**. **Expected:** status accepted, next step "Confirm whether the family received support".
+5. Go to the **Referrals** tab, open that referral, tick the confirmation box and click **Approve referral**. **Expected:** "REF-... approved by <staff>", status approved, next step "Record the provider's response (staff confirmation)". Clicking **Approve referral** without the tick changes nothing.
+6. Choose **accepted**, add a note, tick the confirmation box and click **Record provider response**. Without the tick nothing changes. **Expected:** status accepted, next step "Confirm whether the family received support".
 7. Choose **Yes** for "Did the family receive support?", tick the confirmation box, click **Confirm outcome**. **Expected:** the referral shows status **support_received** and the **Support received** tile is 1 higher than in step 1; filter by that status to see the referral listed first (newest first). The other tiles do not change.
 8. Optional: back on **Find a service**, for a school-fee need (`School fees for my two children`) with category Cash, "School fees support" appears under **Excluded services** (not accepting new referrals and no places left this week).
 
