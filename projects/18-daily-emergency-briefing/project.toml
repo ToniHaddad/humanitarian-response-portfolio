@@ -4,6 +4,6 @@ number = 18
 slug = "daily-emergency-briefing"
 title = "Daily emergency briefing"
 group = "E"
-status = "in_progress"
+status = "built"
 user = "Emergency coordinators"
 task = "Generate an editable one-page briefing with sourced figures, review conflicts, approve and export it."
