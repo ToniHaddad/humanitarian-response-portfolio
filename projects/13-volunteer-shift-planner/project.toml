@@ -4,6 +4,6 @@ number = 13
 slug = "volunteer-shift-planner"
 title = "Volunteer shift planner"
 group = "D"
-status = "in_progress"
+status = "built"
 user = "Volunteer coordinators"
 task = "Suggest volunteer assignments by availability, location and training, and flag overlaps and unfilled roles."
