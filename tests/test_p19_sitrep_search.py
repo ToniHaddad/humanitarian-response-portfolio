@@ -83,3 +83,23 @@ def test_app_found_and_nothing_found(app_test) -> None:  # noqa: ANN001
     assert any("passage(s) found" in s.value for s in at.success)
     at.text_input[0].set_value("quantum computing satellite").run()
     assert any("Nothing relevant found" in w.value for w in at.warning)
+
+
+def test_each_result_links_to_its_full_source_report(app_test) -> None:  # noqa: ANN001
+    at = app_test(19).run()
+    at.text_input[0].set_value("heating fuel blankets cold wave").run()
+    assert not at.exception
+    labels = [e.label for e in at.expander]
+    assert labels and all(label.startswith("Open the full source report SITREP-") for label in labels)
+    headings = [m.value for m in at.markdown if "report date" in m.value]
+    assert len(headings) == len(labels)
+    for heading, label in zip(headings, labels, strict=True):
+        assert label.rsplit(" ", 1)[1] in heading
+
+
+def test_search_index_is_local_with_no_paid_api() -> None:
+    import inspect
+
+    source = inspect.getsource(p19)
+    for banned in ("requests", "httpx", "urllib", "openai", "anthropic", "socket"):
+        assert f"import {banned}" not in source and f"from {banned}" not in source

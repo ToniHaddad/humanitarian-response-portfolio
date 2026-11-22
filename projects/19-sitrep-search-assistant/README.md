@@ -34,14 +34,14 @@ Port 8519.
 ## Screenshot
 ![Sitrep search assistant](screenshot.png)
 
-The screenshot is the real app answering the question from step 1 below, opened with `?q=heating+fuel+for+elderly+people+in+a+cold+wave` in the address (the question box takes its starting text from the `q` query parameter).
+The screenshot is the real app answering the question from step 1 below, opened with `?q=heating+fuel+for+elderly+people+in+a+cold+wave` in the address (the question box takes its starting text from the `q` query parameter). The report dates in it belong to the seed it was taken on; yours differ.
 
 ## Try this demo
-Use a freshly seeded database (`python -m shared.seed --reset`).
-1. Type `heating fuel for elderly people in a cold wave`. Observed: 5 passages, best score 0.391, from "Cold wave response in Pinecrest" (SITREP-002, 2025-07-26) and "Cold wave response in Stonebridge" (SITREP-010, 2026-04-09), best first. Open "the full source report" under a passage to read the whole report.
-2. Type `quantum computing satellite launch`. Observed: a warning "Nothing relevant found" and no passages.
+Use a freshly seeded database (`python -m shared.seed --reset`). The library has 16 reports and 64 passages whatever day you seed; scores depend only on the text. Report dates are set relative to the seed day, so they move from seed to seed: read each date on the line under the passage title instead of expecting a fixed one. Checked on two seeds five days apart: same passages, order and scores, dates shifted by five days.
+1. Type `heating fuel for elderly people in a cold wave`. Expected: 5 passages, best score 0.391, best first. They come from "Cold wave response in Pinecrest" (SITREP-002) and "Cold wave response in Stonebridge" (SITREP-010); each shows its report date, its score (descending) and its section. Open "Open the full source report SITREP-002" under a passage to read the whole report; its title and date match the passage's.
+2. Type `quantum computing satellite launch`. Expected: a warning "Nothing relevant found" and no passages.
 3. Clear the box: "Type a question to search the library." Type `what is the`: a message that the question has only common words.
 4. Raise the sidebar threshold to 0.5 and repeat step 1: nothing found.
 
 ## Tests
-`tests/test_p19_sitrep_search.py`: a question with no relevant report returns "nothing found"; a topic in the library returns passages from the right report with its date; results are ordered by score and above the threshold; threshold behaviour; empty and common-word questions; the search writes nothing; the app starts and shows both outcomes. Extra library: none beyond `requirements.txt` (scikit-learn).
+`tests/test_p19_sitrep_search.py`: a question with no relevant report returns "nothing found"; a topic in the library returns passages from the right report with its date; results are ordered by score and above the threshold; threshold behaviour; empty and common-word questions; the search writes nothing; each result carries a link to its full source report (an expander with the report text and date); the index uses no network or paid API library; the app starts and shows both outcomes. Extra library: none beyond `requirements.txt` (scikit-learn).
