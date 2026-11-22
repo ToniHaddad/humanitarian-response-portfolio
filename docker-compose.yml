@@ -1,0 +1,82 @@
+# Server mode: the apps, the API, the scheduler (data pipeline, alert rules, position simulator,
+# database backup job) and a backup service, all from one image over one shared database volume.
+# Written and statically checked; not run (Docker was not available on the build machine).
+#
+#   cp .env.example .env     # then edit .env
+#   docker compose up -d --build
+#   docker compose ps        # every service should show "healthy"
+#
+# Ports are published only on SERVER_BIND_ADDRESS (default loopback). Inside the containers the
+# services listen on all container interfaces, which only the published ports can reach.
+
+x-portfolio: &portfolio
+  build: .
+  image: portfolio-server:local
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    TZ: ${TZ:-UTC}
+    PORTFOLIO_MODE: server
+    PORTFOLIO_DB_PATH: /data/portfolio.db
+    PORTFOLIO_BACKUP_DIR: /backups
+    PORTFOLIO_BIND_ADDRESS: 0.0.0.0
+  volumes:
+    - portfolio-data:/data
+    - portfolio-backups:/backups
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  apps:
+    <<: *portfolio
+    # Homepage on 8500 and every built project on 8500 + NN (run.py reads the project registry).
+    command: ["python", "run.py", "--no-browser"]
+    ports:
+      - "${SERVER_BIND_ADDRESS:-127.0.0.1}:8500-8520:8500-8520"
+    healthcheck:
+      test: ["CMD", "python", "scripts/healthcheck.py", "apps"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 120s
+
+  api:
+    <<: *portfolio
+    command: ["python", "-m", "shared.api"]
+    ports:
+      - "${SERVER_BIND_ADDRESS:-127.0.0.1}:8600:8600"
+    healthcheck:
+      test: ["CMD", "python", "scripts/healthcheck.py", "http", "http://localhost:8600/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  scheduler:
+    <<: *portfolio
+    # Runs the scheduled jobs (data pipeline, alert rules, position simulator, backup) with no one logged in.
+    command: ["python", "-m", "shared.scheduler"]
+    healthcheck:
+      test: ["CMD", "python", "scripts/healthcheck.py", "heartbeat", "scheduler", "5"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  backup:
+    <<: *portfolio
+    command: ["sh", "-c", "exec python scripts/backup_db.py --every ${BACKUP_INTERVAL_SECONDS:-21600}"]
+    healthcheck:
+      # A backup no older than two intervals plus ten minutes.
+      test: ["CMD", "sh", "-c", "python scripts/healthcheck.py backup $$(( 2 * ${BACKUP_INTERVAL_SECONDS:-21600} + 600 ))"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 2m
+
+volumes:
+  portfolio-data:
+  portfolio-backups:
