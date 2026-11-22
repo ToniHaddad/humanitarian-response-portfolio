@@ -24,7 +24,7 @@ This repository holds 20 Streamlit demo apps over one shared SQLite database. Ma
 - **Use your own copy** for running your app and walkthroughs, so you never disturb other agents:
 
   ```powershell
-  $env:PORTFOLIO_DB_PATH = "C:\dev\humanitarian-response-ai-portfolio\data\agentNN.db"
+  $env:PORTFOLIO_DB_PATH = "data\agentNN.db"   # from the repository root
   .\.venv\Scripts\python.exe -m shared.seed --reset          # builds your copy
   ```
 
