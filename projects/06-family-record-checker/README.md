@@ -43,7 +43,7 @@ Extra library: `rapidfuzz` (already in `requirements.txt`).
 ## Limitations
 
 - The transliteration and skeleton are simple rules, not a linguistic model. Very short names collapse to short keys (*Ali* → `l`), and a few spellings do not reduce to the same key (*Ahmet* → `hmt`, *Ahmad* → `hmd`); those pairs are only found if the other fields push the score over the threshold.
-- Two different people with the same common name, birth year and size will be flagged. That is intended: the demo data contains six such look-alikes (for example HH-00101 / HH-00194, both "Omar Najjar") for staff to judge.
+- Two different people with the same common name, birth year and size will be flagged. That is intended: the demo data contains six such look-alikes (the pairs in the list that are not in `demo.scenarios`) for staff to judge.
 - A merge cannot be undone from the app. The history keeps full snapshots and the exact list of moved records, so it can be reversed by hand.
 - Re-pointing `intake_records.household_id` does not create a new intake record version (the household link is not part of the versioned intake fields).
 - No fallback technique was needed.
@@ -66,11 +66,13 @@ Opens on port **8506**.
 
 Start from freshly seeded data (`python -m shared.seed --reset`).
 
-1. Open the app. In the sidebar choose **CW-01 · Caseworker 01**. The metrics show **369 active households, 14 potential duplicate pairs, 2 decisions recorded**. The list contains all 8 planted duplicates (scores 90 to 100) and 6 same-name look-alikes (scores 80 to 90). HH-00369 (already merged) and HH-00210 / HH-00370 (judged not a duplicate earlier) are not in the list.
-2. In **Pair to review** choose **HH-00088 ↔ HH-00365** (أحمد كرم / Ahmad Karam). The side-by-side table shows the Arabic name right-to-left; the name row is blue, **same after standardization** (both have the matching key `hmd krm`), birth year, gender, size and area are green, and name script and registration details are orange **conflict**. HH-00365 has 1 service request, 1 complaint, 4 calls and 2 distributions linked.
-3. Keep **HH-00088**, leave the name choice on HH-00088, type a reason (for example "Same head of household written in Arabic and Latin script; same birth year, area and size."), choose **CW-01** in the merge form, tick the confirmation box and press **Merge records**.
-4. **Expected result:** "MRG-0003: HH-00365 merged into HH-00088; 8 linked record(s) moved." HH-00365 still exists with status `merged` and `merged_into = HH-00088`; its 8 linked records now point at HH-00088; the metrics show 368 active households, 13 pairs, 3 decisions; the history lists MRG-0003 with CW-01, the time, the reason and 8 records moved.
-5. Choose **HH-00101 ↔ HH-00194** (both "Omar Najjar", different areas). Type a reason, tick the box in the **Not a duplicate** form and press it. **Expected result:** "MRG-0004: HH-00101 and HH-00194 recorded as not a duplicate."; no household changes; the pair leaves the list (12 pairs) and appears in the history.
+The households are referred to by ID. The planted pairs are listed in the setting `demo.scenarios` under `p06` (`duplicate_pairs`, `already_merged`, `judged_not_duplicate`); read them with `json.loads(db.get_setting("demo.scenarios"))["p06"]`. Below, "pair 5" is the fifth entry of `duplicate_pairs` (on the standard seed HH-00088 and HH-00365, variation `arabic_script`).
+
+1. Open the app. In the sidebar choose **CW-01 · Caseworker 01**. Expected: the metrics show the active households (369), the potential duplicate pairs (14) and the decisions recorded (2). The list contains all 8 planted pairs (scores 90 to 100) and the remaining look-alike pairs (same name, birth year and size, scores 80 to 90). The already merged household and the pair in `judged_not_duplicate` are not in the list.
+2. In **Pair to review** choose the pair from `duplicate_pairs` entry 5. The side-by-side table shows each field with its status: the name row is blue **same after standardization** (both names have the same matching key, Arabic names shown right-to-left), birth year, gender and size are green **same**, and name script and registration details are orange **conflict**. The counts of linked service requests, complaints, calls, referrals, intake records, assessments and distributions for the other household are shown (on the standard seed: 1 request, 2 calls, 2 distributions, no complaints).
+3. Keep household A (the first ID), leave the name choice on A, type a reason (for example "Same head of household in two scripts; same birth year, area and size."), choose **CW-01** in the merge form, tick the confirmation box and press **Merge records**.
+4. **Expected result:** "MRG-0003: <B> merged into <A>; N linked record(s) moved." (N = 5 on the standard seed). Household B still exists with status `merged` and `merged_into = <A>`; its linked records now point at <A>; the metrics show 368 active households, 13 pairs, 3 decisions; the history lists MRG-0003 with CW-01, the time, the reason and the records moved.
+5. Choose any remaining pair that is not in `duplicate_pairs` (a look-alike). Type a reason, tick the box in the **Not a duplicate** form and press it. **Expected result:** "MRG-0004: <A> and <B> recorded as not a duplicate."; no household changes; the pair leaves the list (12 pairs) and appears in the history.
 6. Pressing a confirmation button without ticking the box shows "Tick the confirmation box first. Nothing was changed."
 
 ## Tests

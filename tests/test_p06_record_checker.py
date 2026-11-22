@@ -205,7 +205,8 @@ def test_merge_rejects_invalid_field_choice(conn: sqlite3.Connection) -> None:
 
 
 def test_not_duplicate_decision_recorded(conn: sqlite3.Connection) -> None:
-    pair = next(c for c in matching.candidate_pairs(conn) if c["name_a"] == c["name_b"])
+    planted = {frozenset((p["household_a"], p["household_b"])) for p in scenarios(conn)["duplicate_pairs"]}
+    pair = next(c for c in matching.candidate_pairs(conn) if frozenset((c["household_a"], c["household_b"])) not in planted)
     a, b = pair["household_a"], pair["household_b"]
     before = [tuple(r) for r in conn.execute("SELECT * FROM households ORDER BY household_id")]
     with pytest.raises(confirm.ConfirmationRequired):
