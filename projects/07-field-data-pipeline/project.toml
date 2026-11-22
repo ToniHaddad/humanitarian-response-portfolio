@@ -4,6 +4,6 @@ number = 7
 slug = "field-data-pipeline"
 title = "Field data pipeline"
 group = "B"
-status = "in_progress"
+status = "built"
 user = "Information management officers"
 task = "Validate field team spreadsheet exports, load clean rows once, and see why rejected rows were quarantined."

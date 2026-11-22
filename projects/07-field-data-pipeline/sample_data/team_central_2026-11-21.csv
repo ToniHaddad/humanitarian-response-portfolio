@@ -1,0 +1,16 @@
+ HOUSEHOLD , AREA ID , DATE , SIZE , NEED CATEGORY , PRIORITY 
+HH-00010,Riverbend,17/11/2026,2,food,high
+hh-22,AR-08,2026-11-17,3,Shelter,medium
+HH-00025,AR-08,18/11/2026,6,health,high
+HH-28,riverbend,2026-11-18,5,Cash,low
+HH-00029,AR-08,19/11/2026,6,WASH,medium
+HH-00014,Almond Grove,19/11/2026,1,protection,high
+hh-31,AR-09,2026-11-20,6,food,medium
+HH-00037,Almond Grove,20/11/2026,5,health,low
+HH-00006,AR-11,2026-11-20,8,Shelter,high
+hh-7,Pinecrest,21/11/2026,6,cash,medium
+HH-00021,AR-11,21/11/2026,3,water hygiene,low
+HH-00035,AR-08,2026-11-19,1,transport,high
+HH-00039,AR-08,18/11/2026,4,,medium
+HH-00055,AR-09,not recorded,9,food,high
+HH-00888,AR-09,2026-11-19,5,food,low

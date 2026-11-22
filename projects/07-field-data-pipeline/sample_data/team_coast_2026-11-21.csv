@@ -1,0 +1,18 @@
+Household ID,Area Code,Date,HH Size,Category,Priority
+HH-00009,Harbor Flats,16/11/2026,4,food,high
+hh-16,AR-04,2026-11-17,6,Shelter,medium
+HH-00018,ar-04,17/11/2026,8,HEALTH,high
+HH-33,Harbor Flats,2026-11-18,8,cash,low
+HH-00036,AR-04,18/11/2026,9,Protection,high
+HH-00040,AR-04,2026-11-18,5,wash,medium
+HH-00011,Saltmarsh,19/11/2026,6,food,medium
+hh 17,AR-07,2026-11-19,4,water hygiene,high
+HH-00043,Saltmarsh,19/11/2026,4,Shelter,low
+HH-00051,AR-07,20/11/2026,3,health,medium
+HH-63,AR-07,2026-11-20,8,cash,high
+HH-00013,Lantern Bay,20/11/2026,3,Protection,medium
+HH-00019,AR-12,2026-11-21,7,food,high
+HH-00020,AR-13,21/11/2026,2,food,low
+HH-00067,AR-04,2026-11-17,0,shelter,high
+HH-00081,AR-04,2026-11-18,45,health,medium
+HH-00075,Harbor Flats,18/11/2026,4,cash,urgent

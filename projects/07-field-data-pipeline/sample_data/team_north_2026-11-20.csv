@@ -1,0 +1,17 @@
+HH ID,Area,Visit Date,Family Size,Need,Priority
+hh-38,Northfield,17/11/2026,3,WASH,High
+HH-00047,AR-05,2026-11-17,3,Food,medium
+ hh 57 ,ar-05,18/11/2026,3,shelter ,Low
+HH-00097,Northfield,18/11/2026,3,health,HIGH
+HH-00120,AR-05,2026-11-18,2,cash,medium
+HH-12,Juniper Hill,19/11/2026,4,Protection,high
+HH-00024,AR-06,2026-11-19,3,water,Medium
+hh-140,ar-06,19/11/2026,4,Food,low
+HH-00215,Juniper Hill,2026-11-19,6,Shelter,high
+HH-00002,AR-10,20/11/2026,4,Health,Medium
+HH-00059,Eastgate,2026-11-20,5,Water Hygiene,high
+hh-85,AR-10,20/11/2026,4,cash,low
+HH-00114,AR-10,2026-11-20,6,Food,medium
+,AR-05,2026-11-19,3,food,high
+HH-00999,AR-06,19/11/2026,4,shelter,medium
+HH-00118,AR-10,31/11/2026,9,health,high
