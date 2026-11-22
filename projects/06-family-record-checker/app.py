@@ -90,8 +90,7 @@ else:
                     "Name A": c["name_a"],
                     "Household B": c["household_b"],
                     "Name B": c["name_b"],
-                    "Matching keys": f"{c['skeleton_a']} / {c['skeleton_b']}",
-                    "Why": c["reasons"],
+                    "Why flagged": c["reasons"],
                 }
                 for c in candidates
             ]
@@ -233,15 +232,14 @@ if past:
                 "merge_id": "Decision",
                 "decided_at": "When",
                 "decision": "Outcome",
-                "kept_household_id": "Kept / household A",
-                "other_household_id": "Merged / household B",
-                "match_score": "Match score (0-1)",
-                "decided_by": "Decided by",
+                "kept_household_id": "Kept / A",
+                "other_household_id": "Merged / B",
+                "match_score": "Score (0-1)",
+                "decided_by": "By",
                 "reason": "Reason",
-                "records_moved": "Records moved (count)",
-                "moved_detail": "Moved by table",
+                "records_moved": "Moved (rows)",
             }
-        )
+        )[["When", "Decision", "Outcome", "Kept / A", "Merged / B", "Score (0-1)", "By", "Moved (rows)", "Reason"]]
     )
 else:
     st.info("No decisions recorded yet.")
