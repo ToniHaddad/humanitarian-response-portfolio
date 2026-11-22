@@ -71,16 +71,13 @@ def explain(conn: sqlite3.Connection, vehicle_id: str, on: date | None = None) -
 
 # -- positions and staleness ----------------------------------------------
 def position_table(conn: sqlite3.Connection, now: datetime | None = None, limit_minutes: float | None = None) -> pd.DataFrame:
-    """Last known position per vehicle, minutes since the report, and the STALE flag (a vehicle with no report is stale)."""
+    """Last known position per vehicle (view v_last_position), minutes since the report, and the STALE flag (a vehicle with no report is stale)."""
     now = now or clock.now()
     limit = fleet.stale_limit_minutes(conn) if limit_minutes is None else limit_minutes
     rows = []
+    last_by_vehicle = {r["vehicle_id"]: r for r in db.query_all("SELECT * FROM v_last_position", conn=conn)}
     for v in db.query_all("SELECT vehicle_id, simulated FROM vehicles ORDER BY vehicle_id", conn=conn):
-        last = db.query_one(
-            "SELECT * FROM position_reports WHERE vehicle_id = ? ORDER BY reported_at DESC, report_id DESC LIMIT 1",
-            (v["vehicle_id"],),
-            conn=conn,
-        )
+        last = last_by_vehicle.get(v["vehicle_id"])
         at = last["reported_at"] if last else None
         minutes = round((now - datetime.fromisoformat(at)).total_seconds() / 60.0, 1) if at else None
         rows.append(

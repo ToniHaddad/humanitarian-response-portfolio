@@ -14,7 +14,7 @@ Rule-based scoring and straightforward calculation. Readiness is the documented 
 
 ## Inputs
 
-- Database tables `vehicles`, `vehicle_defects`, `drivers`, `position_reports`, `convoys`, `convoy_vehicles`, `convoy_events` (seeded, fictional).
+- Database tables `vehicles`, `vehicle_defects`, `drivers`, `position_reports` (read through the view `v_last_position`), `convoys`, `convoy_vehicles`, `convoy_events` (seeded, fictional).
 - Setting `stale_position_minutes` (default 15), shared with Projects 17 and 20.
 - Position reports are not entered here. They arrive from the Project 20 API and simulator, which write through `shared.fleet.record_position`. This app only reads them.
 - The date to check readiness on (default: today in the demo clock).
