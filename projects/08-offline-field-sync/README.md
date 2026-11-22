@@ -50,7 +50,7 @@ Port **8508**. Use your own database copy with `PORTFOLIO_DB_PATH` if other peop
 
 ## Screenshot
 
-![Offline field sync with an open conflict shown side by side](screenshot.png)
+![Offline field sync on freshly seeded data: device queue, sync status and resolved conflicts](screenshot.png)
 
 ## Try this demo
 
@@ -65,7 +65,7 @@ The IDs come from the seed setting `demo.scenarios` → `p08`: record **INT-0021
 
 Also try: choose **DEV-03** (offline, 2 pending changes), turn its connection on and click **Sync now**: the new record `INT-DEV03-0001` is created at version 1 and INT-0030 is updated, with no conflict.
 
-**Observed on a fresh copy of the database** (`python -m shared.seed --reset` into `data/agent08.db`, steps 1 to 5 run through the same functions the app calls, and steps 1 to 6 driven through Streamlit AppTest in the test suite): the device copy was based on v2; the offline sync was refused ("DEV-01 has no connection; changes stay in the local queue."); the server edit made v3; after reconnecting, the sync reported 0 applied and 1 conflict, CNF-0002, with the message "INT-0021 was changed on the server (v3) after the device's copy (v2): staff must choose."; INT-0021 stayed at v3 with the server's household size 6 and urgency `high`; the queue showed 1 in conflict and 0 pending. The screenshot above was taken in that state.
+**Observed on a fresh copy of the database** (`python -m shared.seed --reset` into `data/agent08.db`, steps 1 to 5 run through the same functions the app calls, and steps 1 to 6 driven through Streamlit AppTest in the test suite): the device copy was based on v2; the offline sync was refused ("DEV-01 has no connection; changes stay in the local queue."); the server edit made v3; after reconnecting, the sync reported 0 applied and 1 conflict, CNF-0002, with the message "INT-0021 was changed on the server (v3) after the device's copy (v2): staff must choose."; INT-0021 stayed at v3 with the server's household size 6 and urgency `high`; the queue showed 1 in conflict and 0 pending. The screenshot above shows the page on freshly seeded data, before these steps, so it has no open conflict yet.
 
 ## Tests
 

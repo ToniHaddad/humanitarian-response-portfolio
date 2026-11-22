@@ -1,5 +1,5 @@
 # Progress
-Current phase: 8 (final verification in progress)
+Current phase: 8 (finished)
 Last updated: 2026-11-22 (local)
 
 ## Phases
@@ -11,7 +11,7 @@ Last updated: 2026-11-22 (local)
 - [x] Phase 5 Group D and sync (15, 14, 13, 16, 08)
 - [x] Phase 6 Group E (18, 19, 17)
 - [x] Phase 7 Server mode
-- [ ] Phase 8 Finish (final verification in progress)
+- [x] Phase 8 Finish (see VERIFICATION.md)
 
 ## Projects
 | # | Folder | Built | Tests pass | Walkthrough checked | Screenshot | Notes |
@@ -52,4 +52,4 @@ Tests-pass cells for 17 to 20 were confirmed by running each project's test file
 - Backups stay on the same machine as the database until they are copied away.
 
 ## Next step
-Part 4 final checks, in order, and then `VERIFICATION.md`.
+None. The build is finished; see `VERIFICATION.md` for what the owner should check before publishing.

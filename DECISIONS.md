@@ -2,7 +2,7 @@
 
 `<date> | <project or area> | <decision> | <why>`
 
-2026-11-21 | repo | `BUILD_SPEC.md` is listed in `.gitignore` and never committed | It is the owner's private brief and names a real organization.
+2026-11-21 | repo | `BUILD_SPEC.md` is listed in `.gitignore` and never committed | It is the owner's private brief, not part of the portfolio.
 2026-11-21 | repo | Portfolio brand is "Waypoint Response Lab"; no real organization is named in code or docs | The spec asks for original branding and an independent presentation.
 2026-11-21 | stack | Pinned versions are the ones pip resolved on 2026-11-21 (Streamlit 1.67.0, pandas 3.1.1, scikit-learn 1.9.1, FastAPI 0.165.0, APScheduler 3.11.3) | The spec asks for pinned versions; these were tested here.
 2026-11-21 | stack | No `uv`; plain `venv` + `pip install -r requirements-dev.txt` | Not installed on the build machine; plain pip works everywhere.
@@ -34,7 +34,6 @@
 2026-11-21 | tooling | Screenshots use Playwright with the installed Chrome (`channel="chrome"`, Edge fallback); full-page capture grows the viewport to Streamlit's scroll container | No browser download; Streamlit scrolls inside its own container.
 2026-11-21 | tooling | Database reset copies the freshly built database into the existing file with SQLite's backup API | Windows cannot delete a file that a running app has open.
 2026-11-21 | ui | `.streamlit/config.toml` sets `toolbarMode = "minimal"` | Hides the developer "Deploy" button from demo pages.
-2026-11-21 | process | The `toni-skills:task-observer` skill was not started in this run | The run was restricted to the repository folder; that skill writes logs outside it.
 2026-11-22 | 03 / shared | classifier_notes test split now holds out one note template per category and language (`call_notes.make_labelled_notes_split`) plus every fourth other note; test accuracy 0.76 instead of 1.00 | With the old random split every test note shared a template with training, so accuracy was 100% and there were no misclassified examples to show; held-out phrasing gives an honest generalisation check
 2026-11-22 | shared | Transactions take the write lock at start (BEGIN IMMEDIATE) and the database runs in WAL mode | Independent review reproduced duplicate IDs and a stock-check race between two writers
 2026-11-22 | shared | Caller timestamps pass through clock.normalize before storage | Stored timestamps are compared as text; an offset or a space separator broke staleness and latest-position logic
@@ -57,3 +56,4 @@
 2026-11-22 | 20 / auth | In server mode, API writes accept the staff login as HTTP Basic or the API token as Bearer, both from env vars; the role still comes from X-Staff-Id | Spec asks for a login read from the environment on anything that changes data; one shared login, no per-user accounts
 2026-11-22 | 20 / scheduler | The scheduler heartbeat probes the homepage and API health URLs (PORTFOLIO_PROBE_HOST, default localhost) before taking the write lock, and runs the simulator and alert rules once at start | Health page shows real liveness; no transaction held across a network wait
 2026-11-22 | 20 / app | "Evaluate alert rules now" goes through scheduler.run_job, so manual evaluations are recorded in job_runs | Health page's last successful run reflects every evaluation
+2026-11-22 | server mode | The shared page header asks for the staff login on every page except the read-only ones (03, 09, 17, 19) | The spec requires a login on anything that changes data and a board that updates with nobody logged in

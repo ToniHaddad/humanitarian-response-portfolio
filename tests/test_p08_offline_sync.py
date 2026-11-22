@@ -64,7 +64,7 @@ def test_offline_capture_queues_and_sync_refuses_offline(conn: sqlite3.Connectio
     q = dev.capture_record(
         conn,
         device_id,
-        {"head_name": "Nadia Haddad", "area_id": "AR-03", "household_size": 5, "primary_need": "food", "urgency": "high", "notes": ""},
+        {"head_name": "Nadia Issa", "area_id": "AR-03", "household_size": 5, "primary_need": "food", "urgency": "high", "notes": ""},
     )
     assert q["status"] == "pending" and q["record_id"] == "INT-DEV01-0001"
     status = sync.queue_status(conn, device_id)
