@@ -240,3 +240,22 @@ def test_app_resolve_defect_through_confirmation(app_test, db_path) -> None:  # 
         assert c.execute("SELECT COUNT(*) FROM audit_log WHERE channel = 'app:14' AND action = 'resolve_defect'").fetchone()[0] == 1
     finally:
         c.close()
+
+
+def test_app_walkthrough_stale_limit_and_trip_log(app_test, db_path) -> None:  # noqa: ANN001
+    """README steps 4 to 6: VEH-07 is the one stale vehicle; limit 400 clears it; CNV-002 has 41 reports."""
+    at = app_test(14).run()
+    assert not at.exception
+    metrics = {m.label: m.value for m in at.metric}
+    assert metrics["Stale positions (vehicles)"] == "1" and metrics["Vehicles tracked (count)"] == "8"
+    assert any("VEH-07" in m.value and "STALE" in m.value for m in at.markdown)
+    limit = next(n for n in at.number_input if n.label.startswith("Minutes before"))
+    limit.set_value(400.0).run()
+    at.checkbox(key="confirm_tick_stale_limit").check()
+    [b for b in at.button if b.label == "Confirm"][3].click().run()
+    assert not at.exception
+    assert any("Stale limit is now 400 minutes" in s.value for s in at.success)
+    assert {m.label: m.value for m in at.metric}["Stale positions (vehicles)"] == "0"
+    at.selectbox(key="p14_convoy").set_value("CNV-002").run()
+    assert not at.exception
+    assert any("41 reports" in c.value for c in at.caption)

@@ -47,22 +47,21 @@ Port 8514. To use your own database copy, set `PORTFOLIO_DB_PATH` first and run 
 
 ## Try this demo
 
-Start from a freshly seeded database. Walkthrough IDs come from the setting `demo.scenarios`, key `p14`: stale vehicle `VEH-07`, convoy in progress `CNV-002`.
+Start from a freshly seeded database (positions are judged against the demo clock, so seed just before you look). Walkthrough IDs come from the setting `demo.scenarios`, key `p14`: stale vehicle `VEH-07`, convoy in progress `CNV-002`. All dates below are relative to the seed day ("today"); read the exact dates off the page.
 
-1. Open **Fleet and readiness** with the date set to today. Expected: 4 ready, 1 due for service, 3 not ready.
-   - VEH-04: not ready, "Service overdue since 2026-11-02 (every 180 days)".
-   - VEH-05: due for service, "Service due by 2026-12-02 or 70000 km".
+1. Open **Fleet and readiness** with the date set to today. Expected: 4 ready, 1 due for service, 3 not ready (the vehicle counts are fixed by the seed). Pick each vehicle under "Why is a vehicle marked this way?":
+   - VEH-04: not ready, "Service overdue since <date>", 20 days before today (every 180 days).
+   - VEH-05: due for service, "Service due by <date> or 70000 km", 10 days after today.
    - VEH-06: not ready, "Grounding defect DEF-001: Brake pedal goes to the floor; brakes unsafe."
-   - VEH-07: not ready, "Insurance expired on 2026-11-19".
-   (The dates are for a seed built on 2026-11-22; they move with the seed's anchor.)
-2. Pick VEH-06 under "Why is a vehicle marked this way?" to see the reason in red. Move the date forward a year: vehicles that were ready now show expired documents or overdue service.
-3. In **Update records**, under "Resolve a defect", choose DEF-001, tick the box and press Confirm. Expected: "Defect DEF-001 resolved."; VEH-06 now shows Ready; one audit row on channel `app:14`. Pressing Confirm without the tick box changes nothing.
-4. Open **Last known positions**. Expected: VEH-07 shows STALE, about 300 minutes since its last report, tracker off; all other vehicles are fresh (a few minutes old); 1 stale vehicle.
-5. In **Update records**, change the stale limit to 400 minutes and confirm as a coordinator. VEH-07 is no longer stale. Set it back to 15.
-6. Open **Trip log per convoy**, choose CNV-002. Expected: events planned, approved, departed; vehicles VEH-01 (DRV-02) and VEH-02 (DRV-08); 41 position reports in time order and a route plot.
+   - VEH-07: not ready, "Insurance expired on <date>", 3 days before today.
+2. Keep VEH-06 selected to see the reason in red. Move the date forward a year: vehicles that were ready now show expired documents or overdue service (every vehicle is not ready a year ahead).
+3. In **Update records**, under "Resolve a defect", choose DEF-001, tick the box and press Confirm. Expected: "Defect DEF-001 resolved."; VEH-06 now shows Ready, so ready goes 4 to 5 and not ready 3 to 2; one audit row on channel `app:14`. Pressing Confirm without the tick box changes nothing.
+4. Open **Last known positions**. Expected: VEH-07 shows STALE, about 5 hours (300 minutes) since its last report, tracker off; all other vehicles are fresh (a few minutes old, counting from the moment you seeded); 1 stale vehicle out of 8 tracked.
+5. In **Update records**, change the stale limit to 400 minutes and confirm as a coordinator. Expected: "Stale limit is now 400 minutes." and 0 stale vehicles, because VEH-07's report is older than 15 minutes but not older than 400. Set it back to 15: 1 stale vehicle again.
+6. Open **Trip log per convoy**, choose CNV-002. Expected: events planned, approved, departed (planned 2 days and approved 1 day before the seed time, departed about 100 minutes before it); vehicles VEH-01 (DRV-02) and VEH-02 (DRV-08); 41 position reports in time order and a route plot.
 
 ## Tests
 
-`tests/test_p14_fleet.py` (19 tests) covers: readiness reasons for VEH-04, VEH-06, VEH-07 and VEH-05's status; a later date changes readiness; the stale flag at the limit (exactly at the limit is not stale, one second over is, no report is stale), changing `stale_position_minutes` changes the flag, with the clock frozen; positions written through `record_position` become the last position and clear the flag; the CNV-002 trip log in time order; report defect, resolve defect, record service and the stale-limit change (refused without confirmation, audited); and the app starting and resolving DEF-001 through the confirmation form.
+`tests/test_p14_fleet.py` (20 tests) covers: readiness reasons for VEH-04, VEH-06, VEH-07 and VEH-05's status; a later date changes readiness; the stale flag at the limit (exactly at the limit is not stale, one second over is, no report is stale), changing `stale_position_minutes` changes the flag, with the clock frozen; positions written through `record_position` become the last position and clear the flag; the CNV-002 trip log in time order; report defect, resolve defect, record service and the stale-limit change (refused without confirmation, audited); and the app starting, resolving DEF-001 through the confirmation form, and the stale-limit and trip-log steps of the walkthrough.
 
 Libraries: only those in `requirements.txt` (Streamlit, pandas, plotly).
