@@ -4,6 +4,6 @@ number = 3
 slug = "call-note-classifier-lab"
 title = "Call note classifier lab"
 group = "A"
-status = "in_progress"
+status = "built"
 user = "Reviewers and data staff"
 task = "Train and check a local Arabic and English model that suggests a request category, and see where it is wrong."
