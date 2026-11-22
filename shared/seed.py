@@ -2329,6 +2329,19 @@ class Seeder:
                     detail=f"{pr['run_id']}: {pr['file_name']}",
                 )
             )
+        # The hourly check that ran shortly before the demo starts and found nothing new,
+        # so the health page does not report the pipeline as overdue on a first launch.
+        recent_check = self.A - timedelta(minutes=20)
+        runs.append(
+            dict(
+                job_name="pipeline_ingest",
+                started_at=clock.iso(recent_check),
+                finished_at=clock.iso(recent_check + timedelta(seconds=1)),
+                status="success",
+                trigger="scheduled",
+                detail="no new files",
+            )
+        )
         for k in (2, 1):
             start = self.at(self.D0 - timedelta(days=k), 2, 0)
             runs.append(
