@@ -74,6 +74,24 @@ def test_stopped_simulator_walkthrough(conn: sqlite3.Connection) -> None:
     assert "VEH-03 STALE" in view.map_caption(board.vehicle_positions(conn), clock.now())
 
 
+def test_switching_simulator_back_on_clears_stale_flags(conn: sqlite3.Connection) -> None:
+    """Walkthrough step 4: after the stop, one simulator run clears the flags; the unsimulated vehicle stays stale."""
+    scenario = _scenario(conn)
+    with db.transaction() as c:
+        c.execute("UPDATE settings SET value = '0' WHERE key = ?", (scenario["simulator_switch_setting"],))
+    limit = fleet.stale_limit_minutes(conn)
+    clock.set_now(clock.now() + timedelta(minutes=limit + 1))
+    df = board.vehicle_positions(conn).set_index("vehicle_id")
+    assert bool(df["stale"].all())
+    with db.transaction() as c:
+        simulator.set_enabled(c, True, "CRD-01")
+        assert simulator.step(c) == len(scenario["simulated_vehicle_ids"])
+    df = board.vehicle_positions(conn).set_index("vehicle_id")
+    assert list(df[df["stale"]].index) == [scenario["already_stale_vehicle_id"]]
+    assert all(not r["stale_vehicles"] for r in board.convoy_rows(conn))
+    assert not board.position_freshness(conn).stale
+
+
 def test_panel_freshness_turns_stale_past_its_limit() -> None:
     now = clock.parse("2026-11-16T10:00:00")
     newest = "2026-11-16T09:00:00"
