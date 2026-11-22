@@ -4,6 +4,6 @@ number = 19
 slug = "sitrep-search-assistant"
 title = "Sitrep search assistant"
 group = "E"
-status = "in_progress"
+status = "built"
 user = "Coordinators and analysts"
 task = "Search past situation reports and get the most relevant passages with their source and date."
