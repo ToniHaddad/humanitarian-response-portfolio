@@ -1,6 +1,7 @@
 # Server mode: the apps, the API, the scheduler (data pipeline, alert rules, position simulator,
 # database backup job) and a backup service, all from one image over one shared database volume.
-# Written and statically checked; not run (Docker was not available on the build machine).
+# Built and run on a GitHub Actions Linux runner (see .github/workflows/server-mode.yml and
+# scripts/server_smoke.py); not yet run on a long-lived server or reached over a private network.
 #
 #   cp .env.example .env     # then edit .env
 #   docker compose up -d --build
@@ -33,7 +34,7 @@ services:
   apps:
     <<: *portfolio
     # Homepage on 8500 and every built project on 8500 + NN (run.py reads the project registry).
-    command: ["python", "run.py", "--no-browser"]
+    command: ["python", "run.py", "--no-browser", "--no-services"]  # the api and scheduler services run the API and scheduler
     ports:
       - "${SERVER_BIND_ADDRESS:-127.0.0.1}:8500-8520:8500-8520"
     healthcheck:
@@ -59,6 +60,15 @@ services:
     <<: *portfolio
     # Runs the scheduled jobs (data pipeline, alert rules, position simulator, backup) with no one logged in.
     command: ["python", "-m", "shared.scheduler"]
+    environment:
+      TZ: ${TZ:-UTC}
+      PORTFOLIO_MODE: server
+      PORTFOLIO_DB_PATH: /data/portfolio.db
+      PORTFOLIO_BACKUP_DIR: /backups
+      PORTFOLIO_BIND_ADDRESS: 0.0.0.0
+      # The scheduler probes the homepage and the API in their own containers.
+      PORTFOLIO_PROBE_HOST: apps
+      PORTFOLIO_PROBE_API_HOST: api
     healthcheck:
       test: ["CMD", "python", "scripts/healthcheck.py", "heartbeat", "scheduler", "5"]
       interval: 60s

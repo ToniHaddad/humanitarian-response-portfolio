@@ -1,5 +1,5 @@
 """Server mode files: static checks of docker-compose.yml, .env.example and .gitignore, and a real
-backup-and-restore run on a seeded temporary database. Docker itself is not run by these tests."""
+backup-and-restore run on a seeded temporary database. Docker itself is not run by these tests; the GitHub Actions workflow server-mode.yml builds and runs the stack."""
 
 from __future__ import annotations
 
@@ -210,3 +210,12 @@ def test_healthcheck_backup_and_heartbeat(tmp_path: Path, monkeypatch: pytest.Mo
     assert health.heartbeat_ok("scheduler")
     assert not health.heartbeat_ok("old")
     assert not health.heartbeat_ok("missing")
+
+
+def test_apps_service_does_not_start_a_second_api_or_scheduler(compose: dict[str, Any]) -> None:
+    assert "--no-services" in compose["services"]["apps"]["command"]
+
+
+def test_shell_scripts_are_forced_to_lf() -> None:
+    assert "*.sh text eol=lf" in (ROOT / ".gitattributes").read_text(encoding="utf-8").splitlines()
+    assert b"\r" not in (ROOT / "scripts" / "docker-entrypoint.sh").read_bytes()

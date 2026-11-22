@@ -1,0 +1,71 @@
+name: server-mode
+
+# Builds and runs the Docker server-mode stack on a Linux runner and smoke-tests it.
+on:
+  push:
+    branches: [server-mode-run, main]
+    paths:
+      - Dockerfile
+      - docker-compose.yml
+      - .dockerignore
+      - .env.example
+      - .gitattributes
+      - scripts/**
+      - shared/**
+      - run.py
+      - requirements.txt
+      - .github/workflows/server-mode.yml
+  workflow_dispatch:
+
+jobs:
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env with generated test credentials
+        run: |
+          cp .env.example .env
+          set_var() { sed -i "s|^$1=.*|$1=$2|" .env; }
+          set_var PORTFOLIO_STAFF_USERNAME "staff-$(openssl rand -hex 3)"
+          set_var PORTFOLIO_STAFF_PASSWORD "$(openssl rand -hex 16)"
+          set_var PORTFOLIO_API_TOKEN "$(openssl rand -hex 24)"
+          set_var BACKUP_INTERVAL_SECONDS 3600
+          # Keep generated values out of the log.
+          grep -E '^PORTFOLIO_(STAFF_PASSWORD|API_TOKEN)=' .env | cut -d= -f2 | while read -r v; do echo "::add-mask::$v"; done
+
+      - name: Build
+        run: docker compose build
+
+      - name: Start
+        run: docker compose up -d
+
+      - name: Wait until every service is healthy
+        run: |
+          deadline=$((SECONDS + 420))
+          while true; do
+            states=$(docker compose ps --format '{{.Service}}={{.Health}}')
+            echo "$(date +%T) $states" | tr '\n' ' '; echo
+            if [ "$(echo "$states" | grep -c '=healthy')" -eq 4 ]; then echo "All 4 services healthy"; break; fi
+            if [ $SECONDS -ge $deadline ]; then
+              echo "::error::services not healthy within 7 minutes"
+              docker compose ps -a
+              for s in $(docker compose config --services); do echo "=== logs: $s ==="; docker compose logs --tail 200 "$s"; done
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Smoke checks
+        run: python3 scripts/server_smoke.py
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          docker compose ps -a
+          for s in $(docker compose config --services); do echo "=== logs: $s ==="; docker compose logs --tail 200 "$s"; done
+
+      - name: Stop and remove volumes
+        if: always()
+        run: docker compose down -v
