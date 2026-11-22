@@ -73,9 +73,9 @@ show = forecast_df.rename(
         "recent_daily_demand": "Demand (units/day)",
         "planned_in_horizon": "Planned (units)",
         "stockout_date": "Stockout date",
-        "lead_time_days": "Lead time (days)",
+        "lead_time_days": "Lead (days)",
         "reorder_by": "Reorder by",
-        "suggested_replenishment": "Replenish (units)",
+        "suggested_replenishment": "Order (units)",
         "below_threshold": "Below threshold",
         "reorder_threshold": "Threshold (units)",
         "action": "Flag",
@@ -87,13 +87,12 @@ show = forecast_df.rename(
         "Unit",
         "On hand",
         "Threshold (units)",
-        "Below threshold",
         "Demand (units/day)",
         "Planned (units)",
         "Stockout date",
         "Reorder by",
-        "Lead time (days)",
-        "Replenish (units)",
+        "Lead (days)",
+        "Order (units)",
     ]
 ]
 ui.table(show)

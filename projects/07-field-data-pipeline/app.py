@@ -16,7 +16,7 @@ from shared import charts, confirm, db, pipeline, ui  # noqa: E402
 
 def short(text: object, limit: int = 70) -> str:
     """Trim long cell text for display only; the stored value is untouched."""
-    value = "" if text is None else str(text)
+    value = "" if text is None or text != text else str(text)  # None and NaN show as empty
     return value if len(value) <= limit else value[: limit - 1] + "…"
 
 
@@ -39,7 +39,7 @@ staff = ui.staff_selector() or "system"
 
 # -- Documented schema -----------------------------------------------------
 ui.section("Documented schema", "Every export is checked against these columns and rules.")
-ui.table(pd.DataFrame({"Column": list(pipeline.COLUMNS), "What it must contain": list(pipeline.COLUMNS.values())}))
+ui.table(pd.DataFrame({"Column": list(pipeline.COLUMNS), "What it must contain": [short(v, 105) for v in pipeline.COLUMNS.values()]}))
 ui.table(pd.DataFrame({"Rule": list(pipeline.RULES), "Rejects a row when": list(pipeline.RULES.values())}))
 
 # -- Run now ---------------------------------------------------------------
@@ -107,7 +107,7 @@ if last:
     )
     if last["runs"]:
         last_runs = pd.DataFrame(last["runs"]).rename(columns=RUN_COLUMNS)
-        last_runs["Error"] = last_runs["Error"].map(short)
+        last_runs["Error"] = last_runs["Error"].map(lambda t: short(t, 60))
         ui.table(last_runs[["File", "Status", "Read (rows)", "Loaded (rows)", "Duplicate (rows)", "Quarantined (rows)", "Run", "Error"]])
 
 conn = db.connect()
@@ -126,13 +126,12 @@ try:
     ui.section("Run history", "Newest first. One row per file processed.")
     history = stats.run_history(conn)
     shown_history = history.rename(columns=RUN_COLUMNS)
-    shown_history["Error"] = shown_history["Error"].map(short)
+    shown_history["Error"] = shown_history["Error"].map(lambda t: short(t, 24))
     ui.table(
         shown_history[
             [
                 "Started",
                 "File",
-                "Source",
                 "Status",
                 "Read (rows)",
                 "Loaded (rows)",
@@ -142,7 +141,8 @@ try:
                 "Run",
                 "Error",
             ]
-        ]
+        ],
+        column_config={"Error": st.column_config.TextColumn(width="large")},
     )
 
     # -- Error rates --------------------------------------------------------

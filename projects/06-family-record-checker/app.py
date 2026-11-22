@@ -227,7 +227,8 @@ else:
 ui.section("Decision history", "Every merge and not-duplicate decision, with who decided, when and why.")
 if past:
     ui.table(
-        pd.DataFrame(past).rename(
+        pd.DataFrame(past)
+        .rename(
             columns={
                 "merge_id": "Decision",
                 "decided_at": "When",
@@ -240,6 +241,7 @@ if past:
                 "records_moved": "Moved (rows)",
             }
         )[["When", "Decision", "Outcome", "Kept / A", "Merged / B", "Score (0-1)", "By", "Moved (rows)", "Reason"]]
+        .assign(Reason=lambda d: d["Reason"].map(lambda t: t if len(str(t)) <= 70 else str(t)[:69] + "…"))
     )
 else:
     st.info("No decisions recorded yet.")
