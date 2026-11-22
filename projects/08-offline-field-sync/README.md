@@ -50,7 +50,9 @@ Port **8508**. Use your own database copy with `PORTFOLIO_DB_PATH` if other peop
 
 ## Screenshot
 
-![Offline field sync on freshly seeded data: device queue, sync status, no open conflict and the past resolved conflict](screenshot.png)
+![Offline field sync with an open conflict: INT-0021 edited on device DEV-01 (urgency and notes) and on the server (household size), shown side by side with the version both started from](screenshot.png)
+
+The image is a real capture of the page after the walkthrough steps below were performed through the same functions the app calls (device offline, edit on the device, edit on the server, connection back on, sync), so conflict CNF-0002 for INT-0021 is open and waiting for a staff choice.
 
 ## Try this demo
 
@@ -65,7 +67,7 @@ Start from freshly seeded data (`python -m shared.seed --reset`). The IDs come f
 
 Also try: choose **DEV-03** (offline, with 2 pending changes in the seed), turn its connection on and click **Sync now**: the new record `INT-DEV03-0001` is created at version 1 and INT-0030 is updated to its next version, with no conflict; **Pending in queue** falls to 0.
 
-The screenshot above shows the page on freshly seeded data, before these steps, so it has no open conflict yet.
+The screenshot above shows the page after steps 1 to 5 (open conflict, nothing resolved yet), on a database copy prepared that way; a freshly seeded database has no open conflict until you do these steps.
 
 ## Tests
 

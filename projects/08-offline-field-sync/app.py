@@ -204,12 +204,6 @@ with device_col:
                 except sync.SyncError as exc:
                     st.error(f"Not saved: {exc}")
 
-    st.markdown("**Local queue**")
-    if queue:
-        ui.table(pd.DataFrame(queue), height=240)
-    else:
-        st.caption("The queue is empty.")
-
 # -- server panel -------------------------------------------------------------
 with server_col:
     ui.section("Server copy", "The office's copy of a record. An edit here while the device is offline produces a two-place edit.")
@@ -240,6 +234,15 @@ with server_col:
             flash("success", f"{srv_id} saved on the server as version v{version}.")
         except sync.SyncError as exc:
             st.error(f"Not saved: {exc}")
+
+# -- local queue (full width so no column is cut off) ---------------------------
+ui.section(f"Local queue of {device_id}", "Changes waiting on the device, newest first.")
+if queue:
+    queue_df = pd.DataFrame(queue).rename(columns={"Base version": "Base (v)"})
+    queue_df["Changes"] = queue_df["Changes"].map(lambda t: t if len(t) <= 90 else t[:89] + "…")
+    ui.table(queue_df[["Record", "Operation", "Status", "Base (v)", "Queued at", "Conflict", "Changes"]], height=240)
+else:
+    st.caption("The queue is empty.")
 
 # -- conflicts ----------------------------------------------------------------
 ui.section(
@@ -337,6 +340,10 @@ for c in conflicts:
 # -- history ------------------------------------------------------------------
 ui.section("Resolved conflicts", "Who chose what, when and why.")
 if history:
-    ui.table(pd.DataFrame(history))
+    ui.table(
+        pd.DataFrame(history).rename(columns={"Device base version": "Base (v)", "Server version": "Server (v)"})[
+            ["Conflict", "Record", "Device", "Choice", "Resolved by", "Resolved at", "Base (v)", "Server (v)", "Reason"]
+        ]
+    )
 else:
     st.caption("No resolved conflicts yet.")
