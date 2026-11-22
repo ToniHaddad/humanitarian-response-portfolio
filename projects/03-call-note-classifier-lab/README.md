@@ -31,13 +31,15 @@ Table `classifier_notes` (600 labelled synthetic notes: 383 train, 217 test) and
 ![Call note classifier lab](screenshot.png)
 
 ## Try this demo
+Every figure below comes from the 600 fixed synthetic notes (and the fixed threshold 0.6), which the seed writes the same way whatever day or time it runs, so none of these numbers depends on the seed date. Nothing in this app is stored, so the walkthrough changes nothing.
+
 1. Open the app. Expect 383 training notes, 217 test notes, overall accuracy 76.5%, 43.8% left blank at threshold 0.60, accuracy when shown 100.0%.
 2. In "Accuracy per category" the weakest bar is Health (44.7%). In the confusion matrix its row shows 17 correct, 13 predicted as Food, 6 as Shelter, 2 as Cash assistance.
 3. In "Try a note" type `Family of 6 has no food left, asking for a food parcel and rice.` Expect "Predicted category: Food (confidence 91%)" and the probability per category.
 4. Type `Caller asked a general question about the office.` Expect "Left blank for the operator: confidence 28% below threshold 60%", the top guess (Food) as a hint only, and a selectbox where you can fill in a category (not saved).
-5. The sample buttons fill an English and an Arabic note; the Arabic water note is predicted Water and hygiene.
+5. The sample buttons fill an English and an Arabic note; the English one is predicted Food (91%) and the Arabic water note is predicted Water and hygiene (confidence 62%, just above the threshold).
 
 ## Tests
-`tests/test_p03_classifier_lab.py`: app starts; confusion matrix sums to the test count; diagonal over total equals accuracy (0.765); per-category counts match; misclassified list equals the off-diagonal count; low-confidence predictions are left blank below, at and above the threshold (tiny threshold and 0.99); empty text is blank; threshold read from settings; the "Try a note" walkthrough in AppTest (clear note gives Food, vague note left blank).
+`tests/test_p03_classifier_lab.py`: app starts; confusion matrix sums to the test count; diagonal over total equals accuracy (0.765); per-category counts match; misclassified list equals the off-diagonal count; low-confidence predictions are left blank below, at and above the threshold (tiny threshold and 0.99); empty text is blank; threshold read from settings; the "Try a note" walkthrough in AppTest (clear note gives Food, vague note left blank, Arabic sample gives Water and hygiene) and the summary figures and weakest category.
 
 Libraries: scikit-learn, plotly, pandas (already in the shared requirements).

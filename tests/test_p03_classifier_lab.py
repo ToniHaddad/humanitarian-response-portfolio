@@ -100,6 +100,9 @@ def test_app_try_note_walkthrough(app_test) -> None:  # noqa: ANN001
     assert metrics["Training notes (count)"] == "383"
     assert metrics["Test notes (count)"] == "217"
     assert metrics["Accuracy, test notes (%)"] == "76.5%"
+    assert metrics["Left blank (% of notes)"] == "43.8%"
+    assert metrics["Accuracy if shown (%)"] == "100.0%"
+    assert any("Weakest category: Health at 44.7%" in c.value for c in at.caption)
 
     at.text_area(key="p03_note").set_value(FOOD).run()
     assert not at.exception
@@ -112,3 +115,6 @@ def test_app_try_note_walkthrough(app_test) -> None:  # noqa: ANN001
     assert any("Left blank for the operator: confidence" in w and "below threshold" in w for w in warnings)
     at.selectbox(key="p03_operator").select("Health").run()
     assert any("Nothing was saved" in s.value for s in at.success)
+    at.button(key="p03_Sample note (Arabic)").click().run()
+    assert not at.exception
+    assert any("Predicted category: Water and hygiene" in s.value for s in at.success)
