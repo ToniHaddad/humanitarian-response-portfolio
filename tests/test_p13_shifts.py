@@ -244,3 +244,34 @@ def test_no_interpreter_role(conn):
 def test_app_runs(app_test):
     at = app_test(13).run()
     assert not at.exception
+
+
+def test_app_walkthrough_cancel_then_accept(app_test, db_path):
+    """README walkthrough: cancel VOL-007's packing assignment, then accept VOL-046 for it."""
+    at = app_test(13).run()
+    assert not at.exception
+
+    def metrics() -> dict[str, str]:
+        return {m.label: m.value for m in at.metric}
+
+    start = metrics()
+    assert start["Overlapping assignment pairs"] == "3"
+    target = next(o for o in at.selectbox(key="p13_assign").options if "SHF-0004" in o and "packing" in o and "VOL-007" in o)
+    at.selectbox(key="p13_assign").set_value(target)
+    at.radio(key="p13_action").set_value("cancel").run()
+    at.checkbox(key="confirm_tick_change").check()
+    next(b for b in at.button if b.label == "Cancel assignment").click().run()
+    assert not at.exception
+    assert any("#21 cancelled" in s.value for s in at.success)
+    after_cancel = metrics()
+    assert after_cancel["Overlapping assignment pairs"] == "2"
+    assert int(after_cancel["Unfilled slots (people)"]) == int(start["Unfilled slots (people)"]) + 1
+
+    pick = next(o for o in at.selectbox(key="p13_pick").options if o.startswith("SHF-0004 · packing · VOL-046"))
+    assert not any("VOL-007" in o and "SHF-0004" in o for o in at.selectbox(key="p13_pick").options)
+    at.selectbox(key="p13_pick").set_value(pick).run()
+    at.checkbox(key="confirm_tick_accept").check()
+    next(b for b in at.button if b.label == "Accept suggestion").click().run()
+    assert not at.exception
+    assert any("Recorded VOL-046 for SHF-0004 packing" in s.value for s in at.success)
+    assert metrics()["Unfilled slots (people)"] == start["Unfilled slots (people)"]
