@@ -4,6 +4,6 @@ number = 12
 slug = "distribution-reconciliation-report"
 title = "Distribution reconciliation"
 group = "C"
-status = "in_progress"
+status = "built"
 user = "Distribution coordinators and finance reviewers"
 task = "Reconcile planned, dispatched, distributed and returned parcels for a site and sign off a report."
