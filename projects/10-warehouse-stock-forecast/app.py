@@ -42,14 +42,13 @@ stock_df = fc.stock_table(conn, warehouse_id)
 ui.table(
     stock_df.rename(
         columns={
-            "item_id": "Item ID",
             "item": "Item",
             "received": "Received",
             "dispatched": "Dispatched",
             "on_hand": "On hand",
             "unit": "Unit",
         }
-    )
+    )[["Item", "Unit", "On hand", "Received", "Dispatched"]]
 )
 
 # -- forecast table --------------------------------------------------------
@@ -71,17 +70,32 @@ show = forecast_df.rename(
         "item": "Item",
         "unit": "Unit",
         "on_hand": "On hand",
-        "recent_daily_demand": "Recent demand per day",
-        "planned_in_horizon": "Planned in horizon",
+        "recent_daily_demand": "Demand (units/day)",
+        "planned_in_horizon": "Planned (units)",
         "stockout_date": "Stockout date",
         "lead_time_days": "Lead time (days)",
         "reorder_by": "Reorder by",
-        "suggested_replenishment": "Suggested replenishment",
+        "suggested_replenishment": "Replenish (units)",
         "below_threshold": "Below threshold",
-        "reorder_threshold": "Reorder threshold",
+        "reorder_threshold": "Threshold (units)",
         "action": "Flag",
     }
-).drop(columns=["warehouse_id", "item_id"])
+)[
+    [
+        "Item",
+        "Flag",
+        "Unit",
+        "On hand",
+        "Threshold (units)",
+        "Below threshold",
+        "Demand (units/day)",
+        "Planned (units)",
+        "Stockout date",
+        "Reorder by",
+        "Lead time (days)",
+        "Replenish (units)",
+    ]
+]
 ui.table(show)
 with st.expander("How this is calculated", expanded=False):
     st.markdown(
@@ -137,9 +151,7 @@ ledger = fc.recent_ledger(conn, warehouse_id)
 ui.table(
     ledger.rename(
         columns={
-            "movement_id": "ID",
             "moved_at": "When",
-            "item_id": "Item ID",
             "item": "Item",
             "movement_type": "Type",
             "reason": "Reason",
@@ -148,7 +160,7 @@ ui.table(
             "reference": "Reference",
             "recorded_by": "Recorded by",
         }
-    )
+    )[["When", "Item", "Type", "Quantity", "Unit", "Reason", "Reference", "Recorded by"]]
 )
 
 # -- forms ------------------------------------------------------------------

@@ -117,7 +117,7 @@ table = areas_df.rename(
         "completed": "Completed (count)",
         "outstanding": "Outstanding (count)",
         "completion_rate_pct": "Completion rate (%)",
-        "outstanding_per_1000": "Outstanding per 1,000 people",
+        "outstanding_per_1000": "Outstanding per 1,000",
         "excluded": "Not counted (count)",
     }
 )[
@@ -129,7 +129,7 @@ table = areas_df.rename(
         "Completed (count)",
         "Outstanding (count)",
         "Completion rate (%)",
-        "Outstanding per 1,000 people",
+        "Outstanding per 1,000",
         "Not counted (count)",
     ]
 ].sort_values("Outstanding (count)", ascending=False)
