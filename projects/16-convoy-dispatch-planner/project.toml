@@ -4,6 +4,6 @@ number = 16
 slug = "convoy-dispatch-planner"
 title = "Convoy dispatch planner"
 group = "D"
-status = "in_progress"
+status = "built"
 user = "Logistics coordinators"
 task = "Plan a convoy's stops, vehicles and loads within capacity and advisories, then approve and track it."
