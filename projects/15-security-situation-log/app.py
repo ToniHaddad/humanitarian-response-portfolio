@@ -162,10 +162,17 @@ else:
     }
     chosen = st.selectbox("Unverified report", list(labels), format_func=lambda i: labels[i], key="p15_pending")
     new_status = st.radio("Outcome", ["verified", "discounted"], horizontal=True, key="p15_outcome")
-    if st.button("Save outcome", key="p15_save_outcome"):
+    verifier = ui.confirm_action(
+        "p15_verify",
+        f"Mark report **{chosen}** as **{new_status}**. Only verified reports count towards the suggested advisory level.",
+        roles=p15.DUTY_ROLES,
+        button_label="Save outcome",
+        default_staff="DO-01",
+    )
+    if verifier:
         try:
             with db.transaction() as conn:
-                p15.set_verification(conn, chosen, new_status, confirmed_by=acting or "")
+                p15.set_verification(conn, chosen, new_status, confirmed_by=verifier)
             st.session_state["p15_flash"] = f"{chosen} marked {new_status}. The board above now uses it."
             st.rerun()
         except Exception as exc:

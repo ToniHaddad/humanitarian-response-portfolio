@@ -193,3 +193,38 @@ def test_verifying_raises_the_suggestion(conn: sqlite3.Connection) -> None:
 def test_app_starts(app_test) -> None:  # noqa: ANN001
     at = app_test(15).run()
     assert not at.exception
+
+
+def test_app_walkthrough_verify_then_override(app_test, db_path) -> None:  # noqa: ANN001
+    """README walkthrough: verify both AR-02 reports, refused override without a reason, override with one."""
+    at = app_test(15).run()
+    assert not at.exception
+    for turn in range(2):
+        option = next(o for o in at.selectbox(key="p15_pending").options if "AR-02" in o)
+        at.selectbox(key="p15_pending").set_value(option)
+        at.radio(key="p15_outcome").set_value("verified").run()
+        if turn == 0:  # without the tick box nothing is saved
+            next(b for b in at.button if b.label == "Save outcome").click().run()
+            assert not at.exception and any("AR-02" in o for o in at.selectbox(key="p15_pending").options)
+            assert not any("marked verified" in s.value for s in at.success)
+        at.checkbox(key="confirm_tick_p15_verify").check()
+        next(b for b in at.button if b.label == "Save outcome").click().run()
+        assert not at.exception and any("marked verified" in s.value for s in at.success)
+    at.selectbox(key="p15_decide_area").set_value("AR-02").run()
+    at.radio(key="p15_mode").set_value("Override with another level").run()
+    at.selectbox(key="p15_final_level").set_value(1).run()
+    at.checkbox(key="confirm_tick_p15_advisory").check()
+    next(b for b in at.button if b.label == "Record advisory decision").click().run()
+    assert any("override needs a written reason" in e.value.lower() for e in at.error)
+    at.text_area(key="p15_reason").set_value("Reports checked, but the road is open and calm; hold at Caution.").run()
+    at.checkbox(key="confirm_tick_p15_advisory").check()
+    next(b for b in at.button if b.label == "Record advisory decision").click().run()
+    assert not at.exception and any("AR-02 is now 1 Caution" in s.value for s in at.success)
+    c = db.connect(db_path)
+    try:
+        row = c.execute(
+            "SELECT suggested_level, final_level, is_override FROM advisories WHERE area_id = 'AR-02' AND active = 1"
+        ).fetchone()
+        assert tuple(row) == (2, 1, 1)
+    finally:
+        c.close()
