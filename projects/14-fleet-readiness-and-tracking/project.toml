@@ -4,6 +4,6 @@ number = 14
 slug = "fleet-readiness-and-tracking"
 title = "Fleet readiness and tracking"
 group = "D"
-status = "in_progress"
+status = "built"
 user = "Fleet and logistics officers"
 task = "See which vehicles are ready, due for service or not ready and why, and follow their last known positions."
