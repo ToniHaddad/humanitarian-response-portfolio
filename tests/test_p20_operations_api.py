@@ -351,6 +351,33 @@ def test_position_simulator_job(db_path: Path) -> None:
         assert tuple(hb) == ("degraded", "stopped")
 
 
+def test_stopped_simulator_vehicles_go_stale_after_the_limit(db_path: Path) -> None:
+    """Project 17's walkthrough: stop the simulator, positions stop, vehicles go stale after the limit."""
+    clock.set_now(ANCHOR + timedelta(minutes=1))
+    assert scheduler.run_job("position_simulator")["detail"] == "7 vehicles reported"
+    with db.transaction(db_path) as conn:
+        simulator.set_enabled(conn, False, "CRD-01")
+        before = conn.execute("SELECT COUNT(*) FROM position_reports").fetchone()[0]
+        limit = fleet.stale_limit_minutes(conn)
+    for k in (2, 8, 16):
+        clock.set_now(ANCHOR + timedelta(minutes=k))
+        scheduler.run_job("position_simulator", "scheduled")
+    with db.transaction(db_path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM position_reports").fetchone()[0] == before
+        at_limit = {p["vehicle_id"]: p["stale"] for p in simulator.vehicle_positions(conn, now=ANCHOR + timedelta(minutes=1 + limit))}
+        past = {p["vehicle_id"]: p["stale"] for p in simulator.vehicle_positions(conn, now=ANCHOR + timedelta(minutes=2 + limit))}
+    assert at_limit["VEH-03"] is False and past["VEH-03"] is True
+
+
+def test_heartbeat_probes_homepage_and_api(db_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(scheduler, "probe", lambda url, timeout=2.0: "8600" in url)
+    scheduler.heartbeat(db_path)
+    with db.transaction(db_path) as conn:
+        beats = {r[0]: r[1] for r in conn.execute("SELECT service_name, status FROM service_heartbeats")}
+    assert beats["api"] == "ok" and beats["homepage"] == "down" and beats["scheduler"] == "ok"
+    assert beats["position_simulator"] == "ok"
+
+
 def test_health_report_lists_every_job_and_service(conn: sqlite3.Connection) -> None:
     report = scheduler.health_report(conn)
     job_names = {r[0] for r in conn.execute("SELECT job_name FROM scheduled_jobs")}
@@ -476,6 +503,24 @@ def test_api_server_mode_requires_token(client: TestClient, monkeypatch: pytest.
     monkeypatch.setenv(auth.TOKEN_VAR, "change-me")
     assert client.post("/alerts/evaluate", headers={**staff, "Authorization": "Bearer change-me"}).status_code == 401
     assert client.get("/health").status_code == 200
+
+
+def test_api_server_mode_accepts_the_staff_login(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    import base64
+
+    def basic(user: str, password: str) -> str:
+        return "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+
+    monkeypatch.setenv("PORTFOLIO_MODE", "server")
+    monkeypatch.delenv(auth.TOKEN_VAR, raising=False)
+    monkeypatch.setenv(auth.USERNAME_VAR, "duty-desk")
+    monkeypatch.setenv(auth.PASSWORD_VAR, "test-pass-123")
+    staff = {"X-Staff-Id": "CRD-01"}
+    assert client.post("/alerts/evaluate", headers={**staff, "Authorization": basic("duty-desk", "wrong")}).status_code == 401
+    assert client.post("/alerts/evaluate", headers={**staff, "Authorization": "Basic not-base64!"}).status_code == 401
+    assert client.post("/alerts/evaluate", headers={**staff, "Authorization": basic("duty-desk", "test-pass-123")}).status_code == 200
+    monkeypatch.setenv("PORTFOLIO_MODE", "local")  # local demo mode: the role header alone
+    assert client.post("/alerts/evaluate", headers=staff).status_code == 200
 
 
 def test_api_alert_threshold_crossed_fires(client: TestClient, db_path: Path) -> None:

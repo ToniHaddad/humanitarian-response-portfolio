@@ -10,7 +10,8 @@ page with no external assets that works offline.
 Roles. Read endpoints are open. Every write needs an `X-Staff-Id` header with an
 active seeded staff ID whose role is allowed for that action (ROLES below):
 401 without a valid staff ID, 403 for a role that is not allowed. In server mode
-(PORTFOLIO_MODE=server) writes also need `Authorization: Bearer <PORTFOLIO_API_TOKEN>`.
+(PORTFOLIO_MODE=server) writes also need a login read from the environment:
+`Authorization: Basic` (staff login) or `Authorization: Bearer <PORTFOLIO_API_TOKEN>`.
 
 Audit. Every change made through the API writes audit_log with channel 'api',
 the actor and role, and before/after JSON, in the same transaction as the change.
@@ -43,7 +44,9 @@ Operations API for the Waypoint Response Lab demo portfolio. Every record is fic
 (for example `CRD-01` coordinator, `FW-01` field worker, `DO-01` duty officer, `ADM-01` admin).
 The role comes from the `staff` table. 401: no or unknown staff ID. 403: role not allowed.
 
-**Server mode** (`PORTFOLIO_MODE=server`): writes also need `Authorization: Bearer <PORTFOLIO_API_TOKEN>`.
+**Server mode** (`PORTFOLIO_MODE=server`): writes also need a login read from the environment, either
+`Authorization: Basic` with `PORTFOLIO_STAFF_USERNAME` / `PORTFOLIO_STAFF_PASSWORD` or
+`Authorization: Bearer <PORTFOLIO_API_TOKEN>`.
 
 **Audit.** Every change writes one or more `audit_log` rows with channel `api`.
 
@@ -98,11 +101,15 @@ def require(action: str) -> Callable[..., Actor]:
 
     def dependency(
         x_staff_id: str | None = Header(None, alias="X-Staff-Id", description="Seeded staff ID making the change, e.g. CRD-01"),
-        authorization: str | None = Header(None, description="Server mode only: Bearer <PORTFOLIO_API_TOKEN>"),
+        authorization: str | None = Header(
+            None, description="Server mode only: Basic <staff login> or Bearer <PORTFOLIO_API_TOKEN>, both read from the environment"
+        ),
     ) -> Actor:
-        if auth.server_mode() and not auth.check_api_token(auth.bearer_token(authorization)):
+        if auth.server_mode() and not auth.check_api_authorization(authorization):
             raise HTTPException(
-                401, "Server mode: a valid 'Authorization: Bearer <token>' header is required for changes.", {"WWW-Authenticate": "Bearer"}
+                401,
+                "Server mode: log in for changes with 'Authorization: Basic' (staff login) or 'Authorization: Bearer <token>'.",
+                {"WWW-Authenticate": 'Basic realm="operations API", Bearer'},
             )
         if not x_staff_id or not x_staff_id.strip():
             raise HTTPException(401, "Send the X-Staff-Id header with your staff ID for any change.")
@@ -794,8 +801,8 @@ th {{ background: #E3F4EC; }} code {{ background: #f2f5f5; padding: 0 0.2rem; }}
 <p class="banner"><strong>DEMO</strong>: fictional data only. This page works offline.</p>
 <h1>{e(spec["info"]["title"])} <small>v{e(spec["info"]["version"])}</small></h1>
 <p>Read endpoints are open. Writes need the header <code>X-Staff-Id</code> (a seeded staff ID such as CRD-01);
-401 without a valid staff ID, 403 for a role that is not allowed. In server mode writes also need
-<code>Authorization: Bearer &lt;PORTFOLIO_API_TOKEN&gt;</code>. Every change is written to the audit log with channel <code>api</code>.
+401 without a valid staff ID, 403 for a role that is not allowed. In server mode writes also need a login:
+<code>Authorization: Basic</code> (staff login) or <code>Authorization: Bearer &lt;PORTFOLIO_API_TOKEN&gt;</code>. Every change is written to the audit log with channel <code>api</code>.
 Machine-readable spec: <a href="/openapi.json">/openapi.json</a>. Interactive docs (need internet for their scripts): <a href="/docs">/docs</a>.</p>
 <h2>Roles per write action</h2><table><tr><th>Action</th><th>Allowed roles</th></tr>{roles_rows}</table>
 <h2>Endpoints</h2><table><tr><th>Method</th><th>Path</th><th>What it does</th><th>Required role</th></tr>{"".join(rows)}</table>

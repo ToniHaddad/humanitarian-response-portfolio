@@ -7,6 +7,11 @@
     python run.py --reset         # rebuild the demo database and exit
     python run.py --list          # list the projects, their ports and status
 
+The full launch (and `python run.py 20`) also starts the background services of Project 20:
+the operations API (`python -m shared.api`, port 8600, docs at /docs) and the scheduler
+(`python -m shared.scheduler`), which runs the alert rules, the data pipeline and the position
+simulator on their intervals. Add --no-services to leave them out.
+
 Stop everything with Ctrl+C. Set PORTFOLIO_DB_PATH to run against another database file.
 """
 
@@ -28,6 +33,11 @@ from shared import config, ports, seed  # noqa: E402
 from shared.projects import Project, all_projects, get_project  # noqa: E402
 
 BIND_ADDRESS = os.environ.get("PORTFOLIO_BIND_ADDRESS", "localhost")
+# Project 20 background services: (name, python module run with -m).
+BACKGROUND_SERVICES: list[tuple[str, str]] = [
+    (f"operations API on http://localhost:{ports.API_PORT}/docs", "shared.api"),
+    ("scheduler (alert rules, data pipeline, position simulator)", "shared.scheduler"),
+]
 
 
 def streamlit_command(script: Path, port: int) -> list[str]:
@@ -74,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--list", action="store_true", help="list projects and exit")
     parser.add_argument("--home-only", action="store_true", help="start only the homepage")
     parser.add_argument("--no-browser", action="store_true", help="do not open the homepage in a browser")
+    parser.add_argument("--no-services", action="store_true", help="do not start the API and the scheduler (Project 20)")
     args = parser.parse_args(argv)
 
     if args.list:
@@ -101,6 +112,10 @@ def main(argv: list[str] | None = None) -> int:
         for name, script, port in to_start:
             procs.append(subprocess.Popen(streamlit_command(script, port), cwd=ROOT))
             print(f"Starting {name} on http://localhost:{port}")
+        if not args.no_services and (not args.projects or "20" in [c.zfill(2) for c in args.projects]):
+            for name, module in BACKGROUND_SERVICES:
+                procs.append(subprocess.Popen([sys.executable, "-m", module], cwd=ROOT))
+                print(f"Starting {name}")
         for name, _script, port in to_start:
             ok = wait_until_up(port)
             print(f"{'Ready' if ok else 'NOT RESPONDING'}: {name} on http://localhost:{port}")

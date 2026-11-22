@@ -13,7 +13,10 @@ APScheduler scheduler with one interval job per enabled row; `python -m shared.s
 runs it in the foreground. health_report() is the one definition the Streamlit page
 and the API share.
 
-Locally nothing runs in the background: the app's "Run now" buttons call run_job().
+`python run.py` starts this scheduler (and the API) beside the portfolio; at start it runs
+the simulator and the alert rules once. The app's "Run now" buttons call run_job() directly.
+Each run and each heartbeat is its own short db.transaction(); nothing is held open
+between ticks, and the homepage and API probes happen before the write lock is taken.
 """
 
 from __future__ import annotations
@@ -22,14 +25,17 @@ import os
 import sqlite3
 import sys
 import traceback
+import urllib.request
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from shared import alerts, clock, config, db, simulator
+from shared import alerts, clock, config, db, ports, simulator
 
 BACKUP_ENV_VAR = "PORTFOLIO_BACKUP_DIR"
+PROBE_HOST_VAR = "PORTFOLIO_PROBE_HOST"
+START_JOBS: tuple[str, ...] = ("position_simulator", "alert_evaluation")  # run once when the scheduler starts
 BACKUPS_TO_KEEP = 5
 OVERDUE_FACTOR = 2.0  # a job is overdue with no success within 2 x its interval
 SERVICE_SILENT_MINUTES = 5.0  # a service not seen for this long is flagged
@@ -181,10 +187,32 @@ def beat(conn: sqlite3.Connection, service: str, status: str = "ok", detail: str
     )
 
 
+def probe(url: str, timeout: float = 2.0) -> bool:
+    """True when a local HTTP service answers 200 (used for the homepage and API heartbeats)."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            return resp.status == 200
+    except OSError:
+        return False
+
+
+def probe_targets() -> dict[str, tuple[str, str]]:
+    """service -> (health URL, description). Host from PORTFOLIO_PROBE_HOST (default localhost)."""
+    host = os.environ.get(PROBE_HOST_VAR, "").strip() or "localhost"
+    return {
+        "homepage": (f"{ports.homepage_url(host)}/_stcore/health", "Streamlit portfolio homepage"),
+        "api": (f"{ports.api_url(host)}/openapi.json", "FastAPI operations API"),
+    }
+
+
 def heartbeat(path: Path | str | None = None) -> None:
-    """Scheduler heartbeat: itself, and the simulator's state from its switch."""
+    """Scheduler heartbeat: itself, the simulator's state from its switch, and probes of the homepage and API."""
+    # Probe before taking the write lock: no transaction is held across a network wait.
+    probed = {name: (probe(url), desc) for name, (url, desc) in probe_targets().items()}
     with db.transaction(path) as conn:
         beat(conn, "scheduler", "ok", "Pipeline, alerts, simulator, backups")
+        for name, (up, desc) in probed.items():
+            beat(conn, name, "ok" if up else "down", desc if up else f"{desc}: not answering")
         if simulator.is_enabled(conn):
             beat(conn, "position_simulator", "ok", "running")
         else:
@@ -272,6 +300,9 @@ def main() -> int:
         return 1
     sched = build_scheduler(blocking=True)
     heartbeat()
+    for name in START_JOBS:  # fresh positions and alerts at once, instead of after the first interval
+        run = run_job(name, "scheduled")
+        print(f"{name}: {run['status']}, {run['detail']}", flush=True)
     jobs = ", ".join(f"{j.id} every {int(j.trigger.interval.total_seconds())} s" for j in sched.get_jobs() if j.id != "_heartbeat")
     print(f"Scheduler running against {target}: {jobs}. Stop with Ctrl+C.", flush=True)
     try:

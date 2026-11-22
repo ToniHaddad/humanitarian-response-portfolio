@@ -4,6 +4,6 @@ number = 20
 slug = "operations-api-and-alerts"
 title = "Operations API and alerts"
 group = "E"
-status = "in_progress"
+status = "built"
 user = "Systems administrators and integrators"
 task = "Use a documented API with roles and an audit log, run alert rules, and check service health."

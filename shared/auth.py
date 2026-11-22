@@ -4,7 +4,8 @@ Every value is read from the environment at call time (see .env.example):
   PORTFOLIO_MODE=server        switches the checks on (shared.config.mode())
   PORTFOLIO_STAFF_USERNAME     staff login for anything that changes data in the apps
   PORTFOLIO_STAFF_PASSWORD
-  PORTFOLIO_API_TOKEN          bearer token the API requires for writes in server mode
+  PORTFOLIO_API_TOKEN          bearer token the API accepts for writes in server mode
+                               (the API also accepts the staff login above as HTTP Basic)
 
 A value that is missing, empty or still the placeholder 'change-me' refuses every
 login, so a server never runs with the example credentials. Comparisons use
@@ -13,6 +14,8 @@ hmac.compare_digest. No secret is ever stored in a file in this repository.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hmac
 import os
 
@@ -87,6 +90,29 @@ def bearer_token(authorization: str | None) -> str | None:
     if scheme.lower() != "bearer":
         return None
     return token.strip() or None
+
+
+def basic_credentials(authorization: str | None) -> tuple[str, str] | None:
+    """(username, password) from an 'Authorization: Basic <base64>' header value."""
+    if not authorization:
+        return None
+    scheme, _, encoded = authorization.strip().partition(" ")
+    if scheme.lower() != "basic":
+        return None
+    try:
+        decoded = base64.b64decode(encoded.strip(), validate=True).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError):
+        return None
+    username, sep, password = decoded.partition(":")
+    return (username, password) if sep else None
+
+
+def check_api_authorization(authorization: str | None) -> bool:
+    """Server-mode API login: the staff login (HTTP Basic) or the API token (Bearer), both read from the environment."""
+    if check_api_token(bearer_token(authorization)):
+        return True
+    creds = basic_credentials(authorization)
+    return creds is not None and check_staff_login(*creds)
 
 
 def require_staff_login() -> str | None:

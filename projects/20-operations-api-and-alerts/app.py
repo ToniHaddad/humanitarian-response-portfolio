@@ -63,9 +63,9 @@ with tab_alerts:
     with p20.read() as conn:
         st.dataframe(p20.rules_frame(conn), hide_index=True, width="stretch")
     if st.button("Evaluate alert rules now", type="primary", disabled=not allowed("evaluate"), help=needs("evaluate")):
-        with db.transaction() as conn:
-            result = alerts.evaluate_rules(conn, channel=APP_CHANNEL)
-        done(f"Alert rules evaluated: {result.summary()}.")
+        # Through the scheduler's run_job, so this run is recorded in job_runs like a scheduled one.
+        run = scheduler.run_job("alert_evaluation", "manual", requested_by=staff_id, channel=APP_CHANNEL)
+        done(f"Alert rules evaluated: {run['detail']}." if run["status"] == "success" else f"Evaluation failed: {run['detail']}")
 
     with st.expander("Change a rule's threshold or switch it off"):
         with p20.read() as conn:
