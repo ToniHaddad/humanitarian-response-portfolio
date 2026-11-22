@@ -183,8 +183,14 @@ class Seeder:
 
     # -- households --------------------------------------------------------
     def _name(self, r: random.Random, gender: str) -> tuple[tuple[str, str, list[str]], tuple[str, str, list[str]]]:
-        first = r.choice(sc.FIRST_NAMES_F if gender == "F" else sc.FIRST_NAMES_M)
+        pool = sc.FIRST_NAMES_F if gender == "F" else sc.FIRST_NAMES_M
+        first = r.choice(pool)
         family = r.choice(sc.FAMILY_NAMES)
+        # A denied pair takes the next first name in the list; no extra random draw is used.
+        i = pool.index(first)
+        while (first[0], family[0]) in sc.DENIED_NAME_PAIRS:
+            i = (i + 1) % len(pool)
+            first = pool[i]
         return first, family
 
     def households(self) -> None:

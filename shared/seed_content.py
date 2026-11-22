@@ -155,6 +155,9 @@ FAMILY_NAMES: list[tuple[str, str, list[str]]] = [
     ("Bitar", "بيطار", ["Baytar"]),
 ]
 
+# (first, family) combinations that must never be generated: they match real public figures.
+DENIED_NAME_PAIRS: frozenset[tuple[str, str]] = frozenset({("Fadi", "Karam"), ("Karim", "Bitar"), ("Ali", "Hamdan")})
+
 # Fictional service directory: (provider_id, name, name_ar, area_id, dx, dy, open_days, languages,
 #   [(category, service_name, keywords, weekly_capacity, current_load, eligibility, accepts_new)])
 PROVIDERS: list[tuple] = [

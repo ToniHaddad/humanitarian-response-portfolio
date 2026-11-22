@@ -66,7 +66,7 @@ def test_transliteration_of_arabic() -> None:
     assert matching.transliterate("فاطمة") == "fatma"
     assert matching.name_similarity("محمد خليل", "Muhammad Khaleel") == 1.0
     # A shared family name alone is not enough.
-    assert matching.name_similarity("Ali Hamdan", "Walid Hamdan") < matching.NAME_GATE
+    assert matching.name_similarity("Ali Issa", "Walid Issa") < matching.NAME_GATE
 
 
 def test_score_parts() -> None:
