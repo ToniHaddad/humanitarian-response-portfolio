@@ -159,7 +159,9 @@ def rules_display(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def alerts_display(df: pd.DataFrame) -> pd.DataFrame:
-    out = df[["alert_id", "status", "severity", "rule_name", "entity_ref", "observed_value", "threshold", "fired_at", "acknowledged_by"]].copy()
+    out = df[
+        ["alert_id", "status", "severity", "rule_name", "entity_ref", "observed_value", "threshold", "fired_at", "acknowledged_by"]
+    ].copy()
     out["fired_at"] = out["fired_at"].map(_stamp)
     out.columns = pd.Index(["Alert", "Status", "Severity", "Rule", "Entity", "Observed", "Threshold", "Fired at", "Ack by"])
     return out
@@ -188,7 +190,9 @@ def services_display(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def jobs_display(df: pd.DataFrame) -> pd.DataFrame:
-    out = df[["job_name", "overdue", "last_run_status", "last_run_at", "last_success_at", "minutes_since_success", "interval_seconds"]].copy()
+    out = df[
+        ["job_name", "overdue", "last_run_status", "last_run_at", "last_success_at", "minutes_since_success", "interval_seconds"]
+    ].copy()
     out["last_run_at"] = out["last_run_at"].map(_stamp)
     out["last_success_at"] = out["last_success_at"].map(_stamp)
     out.columns = pd.Index(["Job", "Overdue", "Last run", "Last run at", "Last success", "Since success (min)", "Every (s)"])

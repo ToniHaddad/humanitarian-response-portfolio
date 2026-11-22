@@ -73,9 +73,7 @@ def label_free_areas(areas: pd.DataFrame, positions: pd.DataFrame, min_km: float
     if areas.empty or positions.empty:
         return areas
     pts = positions.dropna(subset=["x_km", "y_km"])
-    keep = [
-        not any(math.hypot(a.x_km - v.x_km, a.y_km - v.y_km) < min_km for v in pts.itertuples()) for a in areas.itertuples()
-    ]
+    keep = [not any(math.hypot(a.x_km - v.x_km, a.y_km - v.y_km) < min_km for v in pts.itertuples()) for a in areas.itertuples()]
     return areas[keep]
 
 

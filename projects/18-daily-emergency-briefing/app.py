@@ -51,6 +51,13 @@ def _id_list(text: str) -> list[str]:
     return [i for i in text.removeprefix("v_stock_on_hand: ").split(",") if i.strip()]
 
 
+def _short_ids(text: str) -> str:
+    ids = _id_list(text)
+    if len(ids) <= 2:
+        return text.removeprefix("v_stock_on_hand: ") or "none"
+    return f"{', '.join(ids[:2])} (+{len(ids) - 2} more)"
+
+
 src = pd.DataFrame(
     [
         {
@@ -58,8 +65,7 @@ src = pd.DataFrame(
             "Value": int(s["figure_value"]),
             "Unit": s["unit"],
             "Table": s["source_table"],
-            "Records (count)": len(_id_list(s["source_record_ids"])),
-            "First records": ", ".join(_id_list(s["source_record_ids"])[:2]) or "none",
+            "Source records": _short_ids(s["source_record_ids"]),
         }
         for s in b["sources"]
     ]

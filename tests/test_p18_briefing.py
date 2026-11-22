@@ -205,7 +205,16 @@ def test_day_with_many_field_updates_still_fits_one_page(conn: sqlite3.Connectio
         for n in range(60):
             conn.execute(
                 "INSERT INTO field_updates(update_id, reported_at, area_id, site_id, team, text, figure_key, figure_value) VALUES (?,?,?,?,?,?,?,?)",
-                (f"FU-9{n:03d}", f"{day}T{8 + n // 6:02d}:{(n % 6) * 10:02d}:00", None, None, "Team X", "Long field update text. " * 30, None, None),
+                (
+                    f"FU-9{n:03d}",
+                    f"{day}T{8 + n // 6:02d}:{(n % 6) * 10:02d}:00",
+                    None,
+                    None,
+                    "Team X",
+                    "Long field update text. " * 30,
+                    None,
+                    None,
+                ),
             )
     total = len(brf.field_updates_for(conn, day))
     assert total >= 60
