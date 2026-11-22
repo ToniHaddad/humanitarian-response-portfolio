@@ -4,6 +4,6 @@ number = 11
 slug = "food-distribution-tracker"
 title = "Food distribution tracker"
 group = "C"
-status = "in_progress"
+status = "built"
 user = "Distribution site supervisors"
 task = "Record parcels and ready-to-eat meals per household, see when coverage ends, and forecast next distributions."
