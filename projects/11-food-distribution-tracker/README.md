@@ -84,30 +84,34 @@ Port 8511. Run from the repository root with the virtual environment's Python.
 
 ## Try this demo
 
-The walkthrough household comes from the seed: `json.loads(db.get_setting("demo.scenarios"))["p11"]` gives
-`household_id`, `household_size`, `site_id` and `current_coverage_end`. On a freshly seeded database it is a household
-of 5 people whose parcel coverage ends a few days after today (with the current seed: **HH-00037** at **SITE-06 · Almond
-Grove Distribution Point**, parcel coverage ending **today + 4 days**).
+The demo data is generated relative to the day the seed runs, so this walkthrough names records and describes
+changes; read every starting value off the page. The walkthrough household comes from the seed:
+`json.loads(db.get_setting("demo.scenarios"))["p11"]` gives `household_id` (**HH-00037**, a household of 5 people),
+`site_id` (**SITE-06 · Almond Grove Distribution Point**) and `current_coverage_end`. On a fresh database its parcel
+coverage ends a few days after today.
 
-1. In the sidebar choose the scenario site (SITE-06). In section 2, find the household (sort by "Household" or use the
-   table search). **Expected:** its coverage ends on `current_coverage_end` (today + 4 days, "Days left" 4), with 30
-   stored parcel days from its last distribution 25 days ago.
-2. In section 3, keep the default window (tomorrow to today + 7 days, "next week"). **Expected:** the household is
-   listed as due ("ends before the window's last day", 1 standard parcel, no meals because it registered more than 60
-   days ago). At SITE-06 the forecast shows 28 households due, 28 standard parcels, 6 small parcels, 34 parcels in all,
-   and 120 ready-to-eat meals (a separate unit).
-3. In section 1, choose the household (the size defaults to 5, the parcel type to standard, the quantity to 1, meals to
-   0). **Expected preview before saving:** parcel coverage 30 days (150 / 5), meal coverage 0 (separate), expected
-   coverage 30 days, coverage ends **today + 29 days**. Press **Record distribution** in the staff confirmation form (choose the confirming staff member, tick the box).
-4. **Expected:** a confirmation with the new distribution ID and "30 days of coverage, ending today + 29". In section 2
-   the household's coverage end is today + 29 days ("Days left" 29, stored days 30). In section 3 it is no longer in next
-   week's forecast: 27 households due and 27 standard parcels (one fewer, the household's parcel), small parcels (6)
-   and meals (120) unchanged.
+1. In the sidebar choose the scenario site (SITE-06). In section 2, find HH-00037 (click the "Household" header or use
+   the table search). **Expected:** "Parcel coverage ends" equals `current_coverage_end` and is a few days after today
+   ("Days left" is a small positive number, 4 on a fresh database); "Stored parcel days" is 30, from its last
+   distribution about a month earlier ("Last distribution" plus 29 days is the coverage end).
+2. In section 3, keep the default window (tomorrow to today + 7 days, "next week"). **Expected:** HH-00037 is listed as
+   due, status "ends before the window's last day", 1 standard parcel, "New arrival" no and 0 meals. Write down the
+   figures "Households due", "Standard parcels", "Small parcels" and "Ready meals" (they depend on the seed).
+3. In section 1, choose HH-00037 (size 5, standard parcel, quantity 1, meals 0 by default). **Expected preview before
+   saving:** parcel coverage 30 days (1 standard parcel = 150 person-days / 5 people), meal coverage 0 days (separate),
+   and "Parcel coverage ends" = **today + 29 days** (the distribution day is day 1). Press **Record distribution** in
+   the staff confirmation form (the confirming staff member is chosen for you; tick the box first).
+4. **Expected:** a confirmation with the new distribution ID, "Parcel coverage 30 days" and the coverage end date from
+   step 3. In section 2, HH-00037's coverage end is now today + 29 days ("Days left" 29, stored days 30, "Distributions"
+   one more than before). In section 3 the household has left next week's list: "Households due" is 1 lower and
+   "Standard parcels" is 1 lower than in step 2, while "Small parcels" and "Ready meals" are unchanged.
 
 To see the assumptions at work: in section 4 change `person_days.ITM-FP-STD` from 150 to 120 and press "Show the
-effect". At SITE-06 for next week (fresh database) the comparison shows households due 28 → 33, standard parcels
-28 → 36, small parcels 6 → 6 and meals 120 → 144. Saving the edited values or saving a plan (section 5) asks for a
-coordinator's confirmation; saving a plan twice for the same site, item and date is refused.
+effect". In the comparison table the edited column has more households due and more standard parcels than the saved
+column (parcels last fewer days, so more households run out inside the window), small parcels are unchanged, and
+ready-to-eat meals rise (more new arrivals are due); the figures themselves depend on the seed date. Saving the edited
+values or saving a plan (section 5) asks for a coordinator's confirmation; saving a plan twice for the same site, item
+and date is refused.
 
 ## Tests
 
