@@ -142,7 +142,12 @@ def metric_row(metrics: Sequence[tuple[str, Any] | tuple[str, Any, str]]) -> Non
 
 
 def table(df: pd.DataFrame, height: int | str = "auto", column_config: dict[str, Any] | None = None, key: str | None = None) -> None:
-    st.dataframe(df, width="stretch", height=height, hide_index=True, column_config=column_config, key=key)  # type: ignore[arg-type]
+    config = dict(column_config or {})
+    for name in df.columns:
+        # Long free text gets a wide column so it is not cut off to a few words; display only.
+        if name not in config and df[name].dtype == object and df[name].map(lambda v: isinstance(v, str) and len(v) > 60).any():
+            config[name] = st.column_config.TextColumn(width="large")
+    st.dataframe(df, width="stretch", height=height, hide_index=True, column_config=config or None, key=key)  # type: ignore[arg-type]
 
 
 def badge(text: str, kind: str = "ok") -> str:
