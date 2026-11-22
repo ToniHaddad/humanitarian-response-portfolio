@@ -57,15 +57,13 @@ Port 8505. No extra libraries beyond `requirements.txt`.
 
 ## Try this demo
 
-On a fresh database (`python -m shared.seed --reset`), with the app open, as any operator, caseworker or coordinator:
+The extraction works on the two sample notes and the register of areas, none of which depends on the date; the only seed-dependent values are the draft and record numbers, which are the next free IDs (the page shows them). On a freshly seeded database, with the app open, as any operator, caseworker or coordinator:
 
-1. Click **Load english sample note**, then **Extract draft form**. A draft `DRF-0007` is created. Expected: head of household `Samir Nassar`, area `AR-08 Riverbend`, size `5`, need `Food`, urgency `urgent`; nothing missing; **primary need flagged CHECK** ("Several needs mentioned: food, shelter") because of the leaking roof.
-2. Leave the need as Food (or change it), tick the confirmation box and press **Save intake record**. Expected: record `INT-0037` (version 1, source data_entry, language en) with Samir Nassar, AR-08, 5, food, urgent; draft DRF-0007 becomes saved.
-3. Click **Load arabic sample note**, **Extract draft form**. Expected: head `ليلى منصور`, area `AR-05 Northfield`, need Water and hygiene, urgency urgent; **household size flagged MISSING** and the warning "Still empty: household size". Saving now is refused.
-4. Set household size to 4, confirm and save. Expected: record `INT-0038` (language ar, size 4, water_hygiene), draft saved. The recent tables show both; the audit log has `app:05` rows.
-
-Observed on a fresh copy through the domain functions: exactly the results above (INT-0037, INT-0038).
+1. Click **Load english sample note**, then **Extract draft form**. A new draft is created and selected ("Draft DRF-... created"). Expected: head of household `Samir Nassar`, area `AR-08 Riverbend`, size `5`, need `Food`, urgency `urgent`; the badge reads "0 missing"; **primary need flagged CHECK** ("Several needs mentioned: food, shelter") because of the leaking roof.
+2. Leave the need as Food (or change it), tick the confirmation box and press **Save intake record**. Expected: "Saved intake record INT-... (version 1)" with Samir Nassar, AR-08, 5, food, urgent, source data_entry, language en; the draft becomes saved and disappears from the open drafts list.
+3. Click **Load arabic sample note**, **Extract draft form**. Expected: head `ليلى منصور`, area `AR-05 Northfield`, need Water and hygiene, urgency urgent; **household size flagged MISSING** and the warning "Still empty (required before saving): household size." Tick the confirmation box and press **Save intake record**: it is refused ("Cannot save: household_size is empty. Nothing was saved.").
+4. Set household size to 4, tick the confirmation box and save. Expected: a second new record (the next INT number after step 2; language ar, size 4, water_hygiene), draft saved. Under "Recent drafts and saved records" both new records and drafts appear, and the audit log has `app:05` rows for the two extractions and the two saves.
 
 ## Tests
 
-`tests/test_p05_data_entry.py` (48 tests): both sample notes, Arabic-Indic digits and number words, area by English name, Arabic name and code, fuzzy and double areas, need and urgency keywords in both languages, ambiguous or missing fields flagged, household ID check, save without confirmation raises `ConfirmationRequired` and writes nothing, save refuses an empty required field, confirmed save writes record, version 1, draft status and audit row, staff corrections are what is saved, discard, and the app starting and extracting a sample.
+`tests/test_p05_data_entry.py` (49 tests): both sample notes, Arabic-Indic digits and number words, area by English name, Arabic name and code, fuzzy and double areas, need and urgency keywords in both languages, ambiguous or missing fields flagged, household ID check, save without confirmation raises `ConfirmationRequired` and writes nothing, save refuses an empty required field, confirmed save writes record, version 1, draft status and audit row, staff corrections are what is saved, discard, the app starting and extracting a sample, and the walkthrough above clicked through the page with `AppTest` (both sample notes, the refused save, the corrected save).

@@ -307,3 +307,53 @@ def test_app_extract_flow(app_test) -> None:  # noqa: ANN001
     next(b for b in at.button if b.label == "Extract draft form").click().run()
     assert not at.exception
     assert any("Samir Nassar" in (t.value or "") or t.value == "Samir Nassar" for t in at.text_input)
+
+
+def test_app_walkthrough_two_sample_notes(app_test, conn) -> None:  # noqa: ANN001
+    """The README walkthrough through the page: English note saved, Arabic note refused until the size is set."""
+
+    def button(at, label: str):  # noqa: ANN001, ANN202
+        return next(b for b in at.button if b.label == label)
+
+    def tick(at, draft_id: str) -> None:  # noqa: ANN001
+        next(c for c in at.checkbox if c.key == f"confirm_tick_save_{draft_id}").check()
+
+    records0 = conn.execute("SELECT COUNT(*) FROM intake_records").fetchone()[0]
+    at = app_test(5).run()
+    button(at, "Load english sample note").click().run()
+    button(at, "Extract draft form").click().run()
+    assert not at.exception
+    en_draft = at.session_state["p05_current"]
+    assert any("1 uncertain" in m.value and "0 missing" in m.value for m in at.markdown)
+    assert any("CHECK" in m.value and "Primary need" in m.value for m in at.markdown)
+    tick(at, en_draft)
+    button(at, "Save intake record").click().run()
+    assert not at.exception
+    en = conn.execute("SELECT * FROM intake_records ORDER BY record_id DESC LIMIT 1").fetchone()
+    assert (en["head_name"], en["area_id"], en["household_size"], en["primary_need"], en["urgency"]) == (
+        "Samir Nassar",
+        "AR-08",
+        5,
+        "food",
+        "urgent",
+    )
+    assert (en["version"], en["source"], en["language"]) == (1, "data_entry", "en")
+    assert conn.execute("SELECT status FROM intake_drafts WHERE draft_id = ?", (en_draft,)).fetchone()[0] == "saved"
+
+    button(at, "Load arabic sample note").click().run()
+    button(at, "Extract draft form").click().run()
+    ar_draft = at.session_state["p05_current"]
+    assert any("Still empty" in w.value and "household size" in w.value for w in at.warning)
+    assert any("MISSING" in m.value and "Household size" in m.value for m in at.markdown)
+    tick(at, ar_draft)
+    button(at, "Save intake record").click().run()
+    assert any("household_size is empty" in e.value for e in at.error)
+    assert conn.execute("SELECT COUNT(*) FROM intake_records").fetchone()[0] == records0 + 1  # nothing new saved
+
+    next(n for n in at.number_input if n.key == f"hs_{ar_draft}").set_value(4).run()
+    tick(at, ar_draft)
+    button(at, "Save intake record").click().run()
+    assert not at.exception
+    ar = conn.execute("SELECT * FROM intake_records ORDER BY record_id DESC LIMIT 1").fetchone()
+    assert (ar["area_id"], ar["household_size"], ar["primary_need"], ar["language"]) == ("AR-05", 4, "water_hygiene", "ar")
+    assert conn.execute("SELECT COUNT(*) FROM intake_records").fetchone()[0] == records0 + 2
