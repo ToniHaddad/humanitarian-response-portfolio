@@ -1,5 +1,5 @@
 # One image for every service (apps, API, scheduler, backup). The command differs per service
-# in docker-compose.yml. Written and statically checked; not built on the build machine (no Docker).
+# in docker-compose.yml. Built and run on a GitHub Actions Linux runner.
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
