@@ -34,7 +34,7 @@ Port 8519.
 ## Screenshot
 ![Sitrep search assistant](screenshot.png)
 
-The screenshot is the real app on first load, before a question is typed.
+The screenshot is the real app answering the question from step 1 below, opened with `?q=heating+fuel+for+elderly+people+in+a+cold+wave` in the address (the question box takes its starting text from the `q` query parameter).
 
 ## Try this demo
 Use a freshly seeded database (`python -m shared.seed --reset`).

@@ -29,7 +29,7 @@ threshold = st.sidebar.slider(
 )
 top_k = st.sidebar.slider("Most passages to show (count)", 1, 10, p19.DEFAULT_TOP_K)
 
-question = st.text_input("Ask a question across past situation reports", placeholder="e.g. heating fuel for elderly people in a cold wave")
+question = st.text_input("Ask a question across past situation reports", value=str(st.query_params.get("q", "")), placeholder="e.g. heating fuel for elderly people in a cold wave")
 result = index.search(question, threshold=threshold, top_k=top_k)
 
 if result.status == "found":
