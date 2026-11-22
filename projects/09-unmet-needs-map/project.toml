@@ -4,6 +4,6 @@ number = 9
 slug = "unmet-needs-map"
 title = "Unmet needs map"
 group = "C"
-status = "in_progress"
+status = "built"
 user = "Program managers"
 task = "Compare requested and delivered assistance by area, aid type and date, and see where the gap is largest."
