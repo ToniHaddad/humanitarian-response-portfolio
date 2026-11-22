@@ -8,6 +8,7 @@ for p in (str(ROOT), str(HERE)):
         sys.path.insert(0, p)
 
 import p14_fleet as fl  # noqa: E402
+import pandas as pd  # noqa: E402
 import plotly.express as px  # noqa: E402
 import streamlit as st  # noqa: E402
 
@@ -49,7 +50,21 @@ with tab_fleet:
             ("Not ready (vehicles)", int(counts.get("Not ready", 0))),
         ]
     )
-    ui.table(table, key="p14_fleet_table")
+    shown_fleet = table[
+        ["Vehicle", "Status", "Type", "Open defects", "Why", "Next service by date", "Next service by distance (km)", "Odometer (km)"]
+    ].copy()
+    shown_fleet["Why"] = shown_fleet["Why"].map(lambda t: t if len(t) <= 45 else t[:44].rstrip() + "…")
+    ui.table(
+        shown_fleet.rename(
+            columns={
+                "Why": "Why (short)",
+                "Next service by date": "Service due (date)",
+                "Next service by distance (km)": "Service due at (km)",
+                "Odometer (km)": "Odometer now (km)",
+            }
+        ),
+        key="p14_fleet_table",
+    )
     ui.section("Why is a vehicle marked this way?", "Rule: shared/fleet.py. Blocking reasons make a vehicle not ready; warnings do not.")
     vehicle_id = st.selectbox("Vehicle", table["Vehicle"].tolist(), key="p14_explain_vehicle")
     result = fl.explain(conn, vehicle_id, on)
@@ -61,6 +76,9 @@ with tab_fleet:
         st.warning(warning)
     if not result.reasons and not result.warnings:
         st.success("No service, document or defect problems on this date.")
+    with st.expander(f"All dates, load and odometer for {vehicle_id}"):
+        detail = table[table["Vehicle"] == vehicle_id].iloc[0].drop(["Vehicle", "Why"])
+        ui.table(pd.DataFrame({"Item": detail.index, "Value": [str(v) for v in detail.values]}), key="p14_vehicle_detail")
 
 # -- positions -------------------------------------------------------------
 with tab_pos:
@@ -81,19 +99,25 @@ with tab_pos:
         st.button("Refresh now", key="p14_refresh")
         st.markdown(f"Stale limit: **{limit:g} minutes** (setting `stale_position_minutes`). Updated at {now:%H:%M:%S}.")
         shown = pos.copy()
+        newest = shown["last_report_at"].dropna().max() if shown["last_report_at"].notna().any() else None
+        if fleet.is_stale(newest, now, limit):
+            st.warning(
+                "The newest position report is old. The position simulator only runs when the portfolio is launched with its "
+                "services (python run.py); opened alone, this page shows the last reports that were written."
+            )
+        st.markdown("Newest report in the fleet: " + ui.freshness_badge(newest, limit, now), unsafe_allow_html=True)
         n_stale = int(shown["stale"].sum())
         ui.metric_row([("Vehicles tracked (count)", len(shown)), ("Stale positions (vehicles)", n_stale)])
         for row in shown[shown["stale"]].itertuples():
             st.markdown(f"**{row.vehicle_id}** " + ui.freshness_badge(row.last_report_at, limit, now), unsafe_allow_html=True)
-        table = shown.assign(
-            Flag=shown["stale"].map({True: "STALE", False: "ok"}),
-            Tracker=shown["tracker_simulated"].map({True: "reporting", False: "off"}),
-        )[["vehicle_id", "last_report_at", "minutes_since_report", "x_km", "y_km", "speed_kmh", "convoy_id", "source", "Tracker", "Flag"]]
+        table = shown.assign(Flag=shown["stale"].map({True: "STALE", False: "ok"}))[
+            ["vehicle_id", "Flag", "minutes_since_report", "last_report_at", "x_km", "y_km", "speed_kmh", "convoy_id", "source"]
+        ]
         table = table.rename(
             columns={
                 "vehicle_id": "Vehicle",
+                "minutes_since_report": "Report age (min)",
                 "last_report_at": "Last report at",
-                "minutes_since_report": "Minutes since report",
                 "x_km": "East (km)",
                 "y_km": "North (km)",
                 "speed_kmh": "Speed (km/h)",
@@ -119,9 +143,17 @@ with tab_trip:
     convoy_id = st.selectbox("Convoy", list(labels), format_func=lambda k: labels[k], key="p14_convoy")
     log = fl.trip_log(conn, convoy_id)
     ui.section("Status events")
-    ui.table(log["events"], key="p14_events")
+    ui.table(
+        log["events"].rename(columns={"at": "At", "status": "Status", "staff_id": "By", "note": "Note"}),
+        key="p14_events",
+    )
     ui.section("Vehicles and drivers")
-    ui.table(log["vehicles"], key="p14_cv")
+    ui.table(
+        log["vehicles"].rename(
+            columns={"vehicle_id": "Vehicle", "vehicle_type": "Type", "driver_id": "Driver", "licence_class": "Licence class"}
+        ),
+        key="p14_cv",
+    )
     ui.section("Position reports", f"{len(log['reports'])} reports carrying this convoy id, oldest first.")
     if log["reports"].empty:
         st.info("No position reports carry this convoy id.")
@@ -133,7 +165,20 @@ with tab_trip:
             fig, "Distance east (km, invented grid)", "Distance north (km, invented grid)", "Route flown by report order", 420
         )
         st.plotly_chart(fig, width="stretch", key="p14_route")
-        ui.table(log["reports"], height=260, key="p14_reports")
+        ui.table(
+            log["reports"][["reported_at", "vehicle_id", "x_km", "y_km", "speed_kmh", "source"]].rename(
+                columns={
+                    "reported_at": "Reported at",
+                    "vehicle_id": "Vehicle",
+                    "x_km": "East (km)",
+                    "y_km": "North (km)",
+                    "speed_kmh": "Speed (km/h)",
+                    "source": "Source",
+                }
+            ),
+            height=260,
+            key="p14_reports",
+        )
 
 # -- updates ---------------------------------------------------------------
 with tab_update:
