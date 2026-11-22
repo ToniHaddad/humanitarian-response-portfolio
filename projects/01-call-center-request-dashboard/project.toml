@@ -4,6 +4,6 @@ number = 1
 slug = "call-center-request-dashboard"
 title = "Request dashboard"
 group = "A"
-status = "in_progress"
+status = "built"
 user = "Hotline coordinators and caseworkers"
 task = "Track service requests from intake to closure, see unassigned requests and overdue callbacks, and get a suggested category for each note."
