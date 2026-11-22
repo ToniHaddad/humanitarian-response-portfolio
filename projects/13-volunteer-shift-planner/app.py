@@ -44,12 +44,16 @@ ui.section("Unfilled roles", "Per shift and role. Cancelled assignments do not c
 slot_df = pd.DataFrame(slots)
 slot_df["when"] = slot_df["shift_date"] + " " + slot_df["start_time"] + "-" + slot_df["end_time"]
 ui.table(
-    slot_df[["shift_id", "when", "site_id", "purpose", "role", "required", "filled", "confirmed", "unfilled"]].rename(
+    slot_df[["shift_id", "when", "site_id", "role", "required", "filled", "confirmed", "unfilled"]].rename(
         columns={
-            "required": "required (people)",
-            "filled": "assigned (people)",
-            "confirmed": "confirmed (people)",
-            "unfilled": "unfilled (people)",
+            "shift_id": "Shift",
+            "when": "When",
+            "site_id": "Site",
+            "role": "Role",
+            "required": "Needed (people)",
+            "filled": "Assigned (people)",
+            "confirmed": "Confirmed (people)",
+            "unfilled": "Unfilled (people)",
         }
     )
 )
@@ -57,13 +61,47 @@ ui.table(
 ui.section("Overlapping assignments", "The same volunteer on two assignments whose times overlap on one date.")
 if over:
     st.error(f"{len(over)} overlap(s) found.")
-    ui.table(pd.DataFrame(over))
+    over_df = pd.DataFrame(over)
+    ui.table(
+        pd.DataFrame(
+            {
+                "Volunteer": over_df["volunteer_id"],
+                "Date": over_df["shift_date"],
+                "First assignment": "#"
+                + over_df["assignment_a"].astype(str)
+                + " "
+                + over_df["shift_a"]
+                + " "
+                + over_df["role_a"]
+                + " "
+                + over_df["time_a"]
+                + " ("
+                + over_df["status_a"]
+                + ")",
+                "Second assignment": "#"
+                + over_df["assignment_b"].astype(str)
+                + " "
+                + over_df["shift_b"]
+                + " "
+                + over_df["role_b"]
+                + " "
+                + over_df["time_b"]
+                + " ("
+                + over_df["status_b"]
+                + ")",
+            }
+        )
+    )
 else:
     st.success("No overlapping assignments.")
 
 if invalid:
     ui.section("Assignments to review", "Existing assignments where the volunteer lacks the training or a covering availability window.")
-    ui.table(pd.DataFrame(invalid))
+    ui.table(
+        pd.DataFrame(invalid)[["assignment_id", "volunteer_id", "shift_id", "role", "problem"]].rename(
+            columns={"assignment_id": "Assignment", "volunteer_id": "Volunteer", "shift_id": "Shift", "role": "Role", "problem": "Problem"}
+        )
+    )
 
 # -- suggestions -----------------------------------------------------------------
 ui.section(
@@ -72,15 +110,25 @@ ui.section(
     "maximum. Ranked by distance from home area to site, then shifts that week, then ID.",
 )
 if proposals:
+    sug_df = pd.DataFrame(proposals)[["shift_id", "role", "volunteer_id", "distance_km", "shifts_that_week", "why"]]
+    sug_df["why"] = sug_df["why"].map(lambda t: t if len(t) <= 40 else t[:39].rstrip() + "…")
     ui.table(
-        pd.DataFrame(proposals)[["shift_id", "role", "volunteer_id", "distance_km", "shifts_that_week", "why"]].rename(
-            columns={"distance_km": "distance (km)", "shifts_that_week": "shifts that week (count)"}
+        sug_df.rename(
+            columns={
+                "shift_id": "Shift",
+                "role": "Role",
+                "volunteer_id": "Volunteer",
+                "distance_km": "Distance (km)",
+                "shifts_that_week": "Shifts that week (count)",
+                "why": "Why (short)",
+            }
         )
     )
     labels = {i: f"{p['shift_id']} · {p['role']} · {p['volunteer_id']}" for i, p in enumerate(proposals)}
     pick = st.selectbox("Suggestion to accept", list(labels), format_func=lambda i: labels[i], key="p13_pick")
     status = st.radio("Record as", ["suggested", "confirmed"], horizontal=True, key="p13_status")
     chosen = proposals[pick]
+    st.caption(f"Why {chosen['volunteer_id']} for {chosen['shift_id']} {chosen['role']}: {chosen['why']}")
     staff = ui.confirm_action(
         "accept",
         f"Record **{chosen['volunteer_id']}** for **{chosen['shift_id']} {chosen['role']}** as *{status}*?",
