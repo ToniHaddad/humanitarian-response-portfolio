@@ -4,6 +4,6 @@ number = 6
 slug = "family-record-checker"
 title = "Family record checker"
 group = "B"
-status = "in_progress"
+status = "built"
 user = "Registration officers"
 task = "Find likely duplicate household records across Arabic and Latin spellings and merge them with a recorded decision."
