@@ -39,8 +39,8 @@ Rows read, valid rows and quarantined rows are fixed by the sample files, whatev
 All three together: 48 read, 37 valid, 11 quarantined. Run a second time: 0 loaded, all 37 valid rows reported as duplicates.
 
 ## Assumptions
-- Running the pipeline is not a consequential, hard-to-undo action (it only adds validated rows and is safe to re-run), so "Run now" needs no staff confirmation. The sidebar staff selector only sets the audit actor.
-- Error rates count all runs, including repeat loads (rows quarantined again on a repeat load are counted again). By rule, the denominator is all rows read.
+- "Run now" and "Ingest uploaded file" load rows into the shared database, so each sits behind a staff confirmation form (`ui.confirm_action`, then `confirm.require_confirmation` in `p07_stats.run_now` and `p07_stats.ingest_upload`; allowed roles: operator, coordinator, duty officer, admin). Without a confirmation nothing is loaded. The scheduled run (`shared/scheduler.py`, `shared/pipeline.py`) needs no person and does not go through this path.
+- Error rates count each file once: of the runs with the same content hash, only the latest counts, so loading the same file again does not raise the rates. By rule, the denominator is the rows read in those counted runs. The run history still lists every run.
 - Seeded past runs refer to files that do not exist; the sample files are new, so scheduled runs would process them once.
 
 ## Limitations
@@ -59,8 +59,8 @@ streamlit run projects/07-field-data-pipeline/app.py --server.port 8507
 
 ## Try this demo
 1. Open the app. Note the **Assessments loaded in database** figure (call it S, the starting value) and the last scheduled run in the caption under it. Note the schema tables.
-2. Click **Run now**. Expected: status `partial`; 48 rows read, 11 quarantined, and loaded + duplicates = 37 (normally all 37 are loaded and 0 are duplicates; on some seed days 1 row is a duplicate of a seeded assessment). Assessments rise from S to S + the loaded figure. Three new runs appear at the top of the history.
-3. Click **Run now** again. Expected: 0 loaded, 37 duplicates, 11 quarantined again; assessments stay where step 2 left them.
+2. In the confirmation form, choose a confirming staff member, tick the confirmation box and click **Run now** (without the tick nothing happens). Expected: status `partial`; 48 rows read, 11 quarantined, and loaded + duplicates = 37 (normally all 37 are loaded and 0 are duplicates; on some seed days 1 row is a duplicate of a seeded assessment). Assessments rise from S to S + the loaded figure. Three new runs appear at the top of the history.
+3. Confirm **Run now** again. Expected: 0 loaded, 37 duplicates, 11 quarantined again; assessments stay where step 2 left them.
 4. Tick the broken-sample box and run. Expected: one `failed` run for `team_north_2026-11-22.csv` with the missing-column message; nothing loaded, assessments unchanged.
 5. Read the error-rate charts (by rule and by source) and filter the quarantine table by run, rule and source. Each of the seven rules appears.
 6. Optionally upload one of the sample CSVs: no row is loaded, the valid rows are all duplicates and the rest are quarantined again.
@@ -68,4 +68,4 @@ streamlit run projects/07-field-data-pipeline/app.py --server.port 8507
 These steps state relationships only, so they hold on any seed day.
 
 ## Tests
-`tests/test_p07_field_pipeline.py`: expected counts and rules per sample file, every rule covered, tidy-up of headers and values, repeated runs and repeated files add no rows, scheduled run skips processed files, the broken file fails with nothing loaded, error rate calculation by rule and source on known data, quarantine filters, run history order, and the app starting and "Run now" working twice in AppTest. No extra libraries.
+`tests/test_p07_field_pipeline.py`: expected counts and rules per sample file, every rule covered, tidy-up of headers and values, repeated runs and repeated files add no rows, scheduled run skips processed files, the broken file fails with nothing loaded, error rate calculation by rule and source on known data, quarantine filters, run history order, the refusal of "Run now" and uploads without staff confirmation, error rates counting each file once after a repeat load, and the app starting and "Run now" (confirmed) working twice in AppTest. No extra libraries.

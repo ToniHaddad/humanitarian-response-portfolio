@@ -12,9 +12,19 @@ from typing import Any
 
 import pandas as pd
 
-from shared import db, pipeline
+from shared import confirm, db, pipeline
+
+# Staff who may start a load from the app (admin always may). The scheduled run needs no person.
+ROLES: tuple[str, ...] = ("operator", "coordinator", "duty_officer")
 
 BROKEN_SAMPLE: Path = pipeline.SAMPLE_DIR / "broken" / "team_north_2026-11-22.csv"
+
+
+# Each exported file counts once in the error rates: of the runs with the same content hash, only the latest.
+LATEST_RUN_PER_FILE = (
+    "r.run_id = (SELECT r2.run_id FROM pipeline_runs r2 WHERE r2.file_sha256 = r.file_sha256 "
+    "ORDER BY r2.started_at DESC, r2.run_id DESC LIMIT 1)"
+)
 
 
 def error_rate(quarantined: int, rows_read: int) -> float:
@@ -36,10 +46,12 @@ def run_history(conn: sqlite3.Connection, limit: int | None = None) -> pd.DataFr
 
 
 def error_rates_by_source(conn: sqlite3.Connection) -> pd.DataFrame:
-    """Per source: rows read, rows quarantined and error rate (%) across all runs."""
+    """Per source: rows read, rows quarantined and error rate (%), counting each file once (its latest run)."""
     df = db.query_df(
         "SELECT s.source_id, COALESCE(SUM(r.rows_read), 0) AS rows_read, COALESCE(SUM(r.rows_quarantined), 0) AS rows_quarantined "
-        "FROM pipeline_sources s LEFT JOIN pipeline_runs r ON r.source_id = s.source_id GROUP BY s.source_id ORDER BY s.source_id",
+        "FROM pipeline_sources s LEFT JOIN pipeline_runs r ON r.source_id = s.source_id AND "
+        + LATEST_RUN_PER_FILE
+        + " GROUP BY s.source_id ORDER BY s.source_id",
         conn=conn,
     )
     df["error_rate_pct"] = [error_rate(q, n) for q, n in zip(df["rows_quarantined"], df["rows_read"], strict=True)]
@@ -47,9 +59,16 @@ def error_rates_by_source(conn: sqlite3.Connection) -> pd.DataFrame:
 
 
 def error_rates_by_rule(conn: sqlite3.Connection) -> pd.DataFrame:
-    """Per documented rule: rows quarantined and that count as a percentage of all rows read."""
-    total_read = int(db.scalar("SELECT COALESCE(SUM(rows_read), 0) FROM pipeline_runs", conn=conn))
-    counts = {r["rule"]: r["n"] for r in db.query_all("SELECT rule, COUNT(*) AS n FROM pipeline_quarantine GROUP BY rule", conn=conn)}
+    """Per documented rule: rows quarantined and that count as a percentage of all rows read (each file once)."""
+    total_read = int(db.scalar("SELECT COALESCE(SUM(r.rows_read), 0) FROM pipeline_runs r WHERE " + LATEST_RUN_PER_FILE, conn=conn))
+    counts = {
+        r["rule"]: r["n"]
+        for r in db.query_all(
+            "SELECT q.rule, COUNT(*) AS n FROM pipeline_quarantine q JOIN pipeline_runs r ON r.run_id = q.run_id "
+            "WHERE " + LATEST_RUN_PER_FILE + " GROUP BY q.rule",
+            conn=conn,
+        )
+    }
     rules = list(pipeline.RULES) + [r for r in counts if r not in pipeline.RULES]
     return pd.DataFrame(
         {
@@ -96,9 +115,27 @@ def assessment_count(conn: sqlite3.Connection) -> int:
     return int(db.scalar("SELECT COUNT(*) FROM field_assessments", conn=conn))
 
 
-def run_now(conn: sqlite3.Connection, actor_id: str = "system", include_broken: bool = False) -> pipeline.PipelineSummary:
-    """Manual run on the sample folder (plus the broken sample on request). Caller wraps it in a transaction."""
+def run_now(
+    conn: sqlite3.Connection,
+    actor_id: str = "system",
+    include_broken: bool = False,
+    *,
+    confirmed_by: str | None = None,
+) -> pipeline.PipelineSummary:
+    """Manual run on the sample folder (plus the broken sample on request).
+
+    Loads rows into the shared database, so a staff member must confirm it (ConfirmationRequired
+    otherwise). The scheduled run in shared/pipeline.py needs no person and does not come through here.
+    Caller wraps it in a transaction.
+    """
+    staff = confirm.require_confirmation(conn, confirmed_by, ROLES)
     files: list[Path | str] = list(pipeline.sample_files())
     if include_broken:
         files.append(BROKEN_SAMPLE)
-    return pipeline.run_pipeline(conn, trigger="manual", files=files, actor_id=actor_id)
+    return pipeline.run_pipeline(conn, trigger="manual", files=files, actor_id=actor_id if actor_id != "system" else staff)
+
+
+def ingest_upload(conn: sqlite3.Connection, file_name: str, data: bytes, *, confirmed_by: str | None = None) -> pipeline.RunResult:
+    """Ingest one uploaded CSV on demand; needs staff confirmation like run_now."""
+    staff = confirm.require_confirmation(conn, confirmed_by, ROLES)
+    return pipeline.ingest_bytes(conn, file_name, data, trigger="manual", actor_id=staff)

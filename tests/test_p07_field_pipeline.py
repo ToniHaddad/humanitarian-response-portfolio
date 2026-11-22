@@ -9,6 +9,7 @@ import p07_stats as stats
 import pytest
 
 from shared import pipeline
+from shared.confirm import ConfirmationRequired
 
 # file -> (source, rows read, loaded, quarantined by rule)
 EXPECTED: dict[str, tuple[str, int, int, dict[str, int]]] = {
@@ -115,9 +116,21 @@ def test_scheduled_run_skips_processed_files(conn: sqlite3.Connection) -> None:
 
 
 def test_run_now_helper_adds_audit_and_runs(conn: sqlite3.Connection) -> None:
-    summary = stats.run_now(conn, actor_id="OPR-01")
+    summary = stats.run_now(conn, actor_id="OPR-01", confirmed_by="OPR-01")
     assert len(summary.runs) == 3
     assert conn.execute("SELECT COUNT(*) FROM audit_log WHERE action = 'pipeline_run' AND actor_id = 'OPR-01'").fetchone()[0] == 3
+
+
+def test_run_now_refused_without_confirmation(conn: sqlite3.Connection) -> None:
+    before = assessments(conn)
+    runs = conn.execute("SELECT COUNT(*) FROM pipeline_runs").fetchone()[0]
+    for who in (None, "", "NOPE-99", "CW-01"):  # nobody, blank, unknown staff, a role that may not start a load
+        with pytest.raises(ConfirmationRequired):
+            stats.run_now(conn, confirmed_by=who)
+    with pytest.raises(ConfirmationRequired):
+        stats.ingest_upload(conn, "team_north_2026-11-20.csv", sample("team_north_2026-11-20.csv").read_bytes())
+    assert assessments(conn) == before
+    assert conn.execute("SELECT COUNT(*) FROM pipeline_runs").fetchone()[0] == runs
 
 
 # -- broken file ----------------------------------------------------------------
@@ -128,7 +141,7 @@ def test_broken_file_fails_and_loads_nothing(conn: sqlite3.Connection) -> None:
     assert (result.rows_read, result.rows_loaded, result.rows_quarantined) == (0, 0, 0)
     assert "household_id" in (result.error_message or "")
     assert assessments(conn) == before
-    summary = stats.run_now(conn, include_broken=True)
+    summary = stats.run_now(conn, include_broken=True, confirmed_by="OPR-01")
     assert summary.status == "failed" and summary.failed_runs == 1
 
 
@@ -216,6 +229,19 @@ def test_error_rates_by_source_and_rule_on_known_data(conn: sqlite3.Connection) 
     assert by_rule.loc["missing_household_id", "error_rate_pct"] == 2.1  # 1 of 48
 
 
+def test_error_rates_count_each_file_once(conn: sqlite3.Connection) -> None:
+    clear_pipeline_tables(conn)
+    pipeline.run_pipeline(conn, trigger="manual")
+    pipeline.run_pipeline(conn, trigger="manual")  # the same three files loaded again: six runs in the history
+    assert conn.execute("SELECT COUNT(*) FROM pipeline_runs").fetchone()[0] == 6
+    by_source = stats.error_rates_by_source(conn).set_index("source_id")
+    assert by_source["rows_read"].sum() == 48 and by_source["rows_quarantined"].sum() == 11
+    assert by_source.loc["TEAM-NORTH", "error_rate_pct"] == 18.8
+    by_rule = stats.error_rates_by_rule(conn).set_index("rule")
+    assert by_rule["rows_quarantined"].sum() == 11
+    assert by_rule.loc["unknown_household", "error_rate_pct"] == 4.2  # still 2 of 48
+
+
 def test_quarantine_filters(conn: sqlite3.Connection) -> None:
     clear_pipeline_tables(conn)
     summary = pipeline.run_pipeline(conn, trigger="manual")
@@ -255,12 +281,21 @@ def test_app_run_now_loads_once(app_test, db_path: Path) -> None:  # noqa: ANN00
         finally:
             c.close()
 
+    def run_now(at) -> None:  # noqa: ANN001
+        # "Run now" sits in a confirmation form: tick the box, then submit it.
+        next(c for c in at.checkbox if c.key == "confirm_tick_p07_run_now").check()
+        next(b for b in at.button if b.label == "Run now").click().run()
+
     before = count()
     at = app_test(7).run()
+    # Pressing the button without ticking the confirmation changes nothing.
     next(b for b in at.button if b.label == "Run now").click().run()
+    assert not at.exception
+    assert count() == before
+    run_now(at)
     assert not at.exception
     after_first = count()
     assert after_first == before + 37
-    next(b for b in at.button if b.label == "Run now").click().run()
+    run_now(at)
     assert not at.exception
     assert count() == after_first
