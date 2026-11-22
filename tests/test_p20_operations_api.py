@@ -651,3 +651,34 @@ def test_app_acknowledge_with_confirmation(app_test, db_path: Path) -> None:  # 
             "SELECT channel FROM audit_log WHERE entity_table = 'alerts' AND action = 'acknowledge' ORDER BY audit_id DESC"
         ).fetchone()
         assert audit[0] == "app:20"
+
+
+def test_every_api_write_endpoint_writes_an_audit_row_on_channel_api(client: TestClient, db_path: Path) -> None:
+    def api_rows() -> int:
+        with db.transaction(db_path) as conn:
+            return conn.execute("SELECT COUNT(*) FROM audit_log WHERE channel = 'api'").fetchone()[0]
+
+    open_alert = client.get("/alerts", params={"status": "open"}).json()[0]["alert_id"]
+    writes = [
+        ("patch", "/alert-rules/RULE-STOCK", {"json": {"threshold": 44}, "headers": {"X-Staff-Id": "CRD-01"}}),
+        ("post", f"/alerts/{open_alert}/acknowledge", {"headers": {"X-Staff-Id": "CRD-01"}}),
+        ("post", "/jobs/alert_evaluation/run", {"headers": {"X-Staff-Id": "ADM-01"}}),
+        ("put", "/simulator", {"json": {"enabled": False}, "headers": {"X-Staff-Id": "CRD-01"}}),
+        ("put", "/settings/stale_position_minutes", {"json": {"minutes": 9}, "headers": {"X-Staff-Id": "CRD-01"}}),
+        ("post", "/positions", {"json": {"vehicle_id": "VEH-07", "x_km": 5, "y_km": 5}, "headers": {"X-Staff-Id": "FW-01"}}),
+    ]
+    for method, url, kwargs in writes:
+        before = api_rows()
+        response = getattr(client, method)(url, **kwargs)
+        assert response.status_code in (200, 201), (url, response.text)
+        assert api_rows() > before, f"{method.upper()} {url} wrote no audit row on channel api"
+
+
+def test_app_health_tab_lists_every_service_and_job(app_test) -> None:  # noqa: ANN001
+    at = app_test(20).run()
+    assert not at.exception
+    frames = [d.value for d in at.dataframe]
+    services = next(f for f in frames if "service_name" in f.columns)
+    jobs = next(f for f in frames if "last_success_at" in f.columns and "job_name" in f.columns)
+    assert {"api", "homepage", "position_simulator", "scheduler"} <= set(services["service_name"])
+    assert set(jobs["job_name"]) == {"pipeline_ingest", "alert_evaluation", "position_simulator", "db_backup"}
