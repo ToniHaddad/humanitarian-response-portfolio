@@ -44,20 +44,15 @@ Port 8509.
 ![Unmet needs map](screenshot.png)
 
 ## Try this demo
-The seeded dates move with the seed anchor, so the figures below are for a database built with the anchor used by the tests, with the demo clock frozen at the same moment:
+Start from freshly seeded data (`python -m shared.seed --reset`) and run `python run.py 9`. The seeded requests are dated relative to the seed time, so the counts differ from day to day; every statement below is a relationship that holds on any day. Read each starting value from the page, where it is named.
 
-```powershell
-$env:PORTFOLIO_DB_PATH = "data\agent09.db"
-$env:PORTFOLIO_FROZEN_NOW = "2026-11-16T10:00:00"
-.\.venv\Scripts\python.exe -m shared.seed --reset --anchor 2026-11-16T10:00:00
-.\.venv\Scripts\python.exe run.py 9
-```
+1. Open the page. In the sidebar the date range is the last 30 days, ending on the date shown in the "Demo clock" caption (both days included). Read the four metrics: **Requests**, **Completed**, **Outstanding** and **Not counted**. Outstanding equals Requests minus Completed. In the **Area table**, the 12 areas' requests, completed and outstanding figures add up to the same three metrics (Not counted adds up too), and the table is sorted by outstanding, largest first.
+2. Open **How the gap is calculated**. Its worked example names the area in the first row of the area table and repeats that row's figures: "N requests - C completed = G outstanding", with the area's population and outstanding per 1,000 people.
+3. Set **Aid type** to **Food**. Requests, completed and outstanding are now the food subset (each no larger than in step 1) and Outstanding still equals Requests minus Completed. The worked example now reads "N food requests - C completed = G outstanding" for the area at the top of the table; that area's marker is the biggest on the map, and the Food column of the area x aid type heatmap shows the same G for it. (Check on any day: the aid types, including **Not yet categorised**, add up to the all-aid-types metrics.)
+4. Set **Aid type** to **Not yet categorised**: Completed is 0 and Outstanding equals Requests, because in the seed every uncategorised request is still `new` (none is closed or referred).
+5. Set the aid type back to all and **Area** to the area that was in the first row in step 1: the metrics equal that area's row of the unfiltered table, and the weekly chart shows its requests and completed counts by week (Monday start).
 
-1. Open the page. The date range is 2026-10-17 to 2026-11-16 (last 30 days). Expected metrics: **125** requests, **49** completed, **76** outstanding, **5** not counted.
-2. The area table (sorted by outstanding) starts with Riverbend: 18 requests, 6 completed, **12 outstanding** (33.3 % complete, 0.65 per 1,000 people). The "How the gap is calculated" box shows this as its worked example.
-3. Set **Aid type** to **Food**. The largest gap is Pinecrest: **6 requests - 1 completed = 5 outstanding** (0.61 per 1,000 people, population 8,200). The map marker for Pinecrest is the biggest, and the Food column of the area x aid type heatmap shows 5 for Pinecrest.
-4. Set **Aid type** to **Not yet categorised**: Riverbend shows 5 requests, 0 completed, 5 outstanding.
-5. Set **Area** to Pinecrest and the aid type back to all: the metrics are the area's own totals (10 requests, 3 completed, 7 outstanding) and the weekly chart shows its requests and completed counts.
+Observed on two copies seeded five days and several hours apart: the metrics differed between them (for example requests 124 on both but completed 48 versus 50, outstanding 76 versus 74), while every relationship above held on both.
 
 ## Tests
 `tests/test_p09_unmet_needs.py` covers: the gap per area and aid type on hand-built requests (assisted, a referral received counted once with two referrals, duplicate / withdrawn / not eligible excluded, open and unreachable outstanding, no-category requests as their own aid type); inclusive date boundaries; aid type and area filters; all 12 areas present with zeros; area totals summing to the overall totals; the per-1,000 figure; the default 30-day range; and the app starting with and without data.
