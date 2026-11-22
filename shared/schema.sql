@@ -54,7 +54,8 @@ CREATE TABLE items (
     category     TEXT NOT NULL,             -- food_parcel, rte_meal, hygiene, shelter, water, medical
     unit         TEXT NOT NULL,             -- parcel, meal, kit, litre, box
     unit_weight_kg REAL NOT NULL,
-    -- For food parcels: person-days of food in one parcel (e.g. 5 people x 30 days = 150).
+    -- Not used (left NULL): person-days per parcel are edited only in forecast_assumptions
+    -- ('person_days.<item_id>', read with shared.food.load_assumptions).
     person_days_per_unit REAL
 );
 

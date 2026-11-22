@@ -21,14 +21,14 @@ def test_coverage_depends_on_household_size() -> None:
 
 
 def test_coverage_with_edited_assumption() -> None:
-    assert food.coverage_days(5, 1, 0, 150, 3) == 30
-    assert food.coverage_days(5, 1, 0, 100, 3) == 20  # parcel edited to 100 person-days
+    assert food.parcel_coverage_days(5, 1, 150) == 30
+    assert food.parcel_coverage_days(5, 1, 100) == 20  # parcel edited to 100 person-days
 
 
 def test_meals_converted_to_days_separately() -> None:
-    # 30 meals for 5 people at 3 meals a day = 2 days; added as days, not as quantities.
+    # 30 meals for 5 people at 3 meals a day = 2 days, a separate figure: parcel coverage ignores meals.
     assert food.meal_coverage_days(5, 30, 3) == 2
-    assert food.coverage_days(5, 1, 30, 150, 3) == 32
+    assert food.coverage(5, "ITM-FP-STD", 1, 30, food.default_assumptions()) == (30, 2)
 
 
 def test_coverage_end_date_counts_distribution_day() -> None:

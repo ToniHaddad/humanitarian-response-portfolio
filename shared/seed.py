@@ -155,7 +155,7 @@ class Seeder:
         self.ins("warehouses", wh_rows)
         self.ins(
             "items",
-            [dict(item_id=i[0], name=i[1], category=i[2], unit=i[3], unit_weight_kg=i[4], person_days_per_unit=i[5]) for i in sc.ITEMS],
+            [dict(item_id=i[0], name=i[1], category=i[2], unit=i[3], unit_weight_kg=i[4], person_days_per_unit=None) for i in sc.ITEMS],
         )
         self.item_weight = {i[0]: i[4] for i in sc.ITEMS}
         self.ins("staff", [dict(staff_id=s[0], display_name=s[1], role=s[2], active=1) for s in sc.STAFF])
@@ -178,7 +178,8 @@ class Seeder:
             for k, v in food.DEFAULT_ASSUMPTIONS.items()
         ]
         self.ins("forecast_assumptions", assumptions)
-        self.person_days = {"ITM-FP-STD": 150.0, "ITM-FP-SML": 60.0}
+        # The one source of person-days per parcel and the parcel-size rule (shared.food).
+        self.assumptions = food.default_assumptions()
 
     # -- households --------------------------------------------------------
     def _name(self, r: random.Random, gender: str) -> tuple[tuple[str, str, list[str]], tuple[str, str, list[str]]]:
@@ -1317,9 +1318,10 @@ class Seeder:
             by_area[h["area_id"]].append(h)
 
         def parcel_for(size: int) -> tuple[str, int]:
-            if size <= 2:
-                return "ITM-FP-SML", 1
-            return "ITM-FP-STD", 1 if size <= 5 else 2
+            return food.parcel_plan(size, self.assumptions)
+
+        def parcel_days(size: int, item: str, q: int) -> int:
+            return food.coverage(size, item, q, 0, self.assumptions).parcel_days
 
         plans, dispatches, movements, dists, returns = [], [], [], [], []
         plan_n = disp_n = dist_n = ret_n = 0
@@ -1429,7 +1431,7 @@ class Seeder:
             rows_here: list[dict[str, Any]] = []
             for item in ("ITM-FP-STD", "ITM-FP-SML"):
                 for h, q, meals in lines[item]:
-                    cov = food.coverage_days(h["household_size"], q, meals, self.person_days[item], 3.0)
+                    cov = parcel_days(h["household_size"], item, q)
                     rows_here.append(dict(household=h, item=item, q=q, meals=meals, cov=cov))
             if forced:
                 dup_h = rows_here[0]["household"]
@@ -1439,7 +1441,7 @@ class Seeder:
                         item="ITM-FP-STD",
                         q=1,
                         meals=0,
-                        cov=food.coverage_days(dup_h["household_size"], 1, 0, 150.0, 3.0),
+                        cov=parcel_days(dup_h["household_size"], "ITM-FP-STD", 1),
                         note="duplicate",
                     )
                 )
@@ -1450,7 +1452,7 @@ class Seeder:
                         item="ITM-FP-STD",
                         q=1,
                         meals=0,
-                        cov=food.coverage_days(extra["household_size"], 1, 0, 150.0, 3.0),
+                        cov=parcel_days(extra["household_size"], "ITM-FP-STD", 1),
                         note="unmatched",
                     )
                 )

@@ -2,6 +2,7 @@
 
 stock_movements is the only source of on-hand stock: received minus dispatched.
 A dispatch writes one dispatches row and one matching stock_movements row together.
+A return (record_return) writes one distribution_returns row and one matching receipt together.
 """
 
 from __future__ import annotations
@@ -113,3 +114,55 @@ def record_dispatch(
         at=when,
     )
     return dispatch_id
+
+
+def record_return(
+    conn: sqlite3.Connection,
+    dispatch_id: str,
+    quantity: int,
+    staff_id: str,
+    at: str | None = None,
+    channel: str = "app",
+) -> str:
+    """Record parcels (or other items) coming back from a site after a distribution day.
+
+    Writes the distribution_returns row (read by Project 12) and the matching ledger
+    receipt (reason 'distribution_return', read by Project 10) together, with one audit
+    entry. Call inside db.transaction(). Returns the return_id.
+    """
+    if quantity <= 0:
+        raise ValueError("quantity must be positive")
+    dispatch = conn.execute(
+        "SELECT warehouse_id, site_id, item_id, quantity FROM dispatches WHERE dispatch_id = ?", (dispatch_id,)
+    ).fetchone()
+    if dispatch is None:
+        raise ValueError(f"unknown dispatch {dispatch_id}")
+    warehouse_id, site_id, item_id, dispatched = dispatch[0], dispatch[1], dispatch[2], int(dispatch[3])
+    already = int(
+        conn.execute("SELECT COALESCE(SUM(quantity), 0) FROM distribution_returns WHERE dispatch_id = ?", (dispatch_id,)).fetchone()[0]
+    )
+    if already + quantity > dispatched:
+        raise ValueError(f"{dispatch_id} sent {dispatched}; {already} already returned, so at most {dispatched - already} can come back")
+    when = clock.normalize(at)
+    return_id = db.next_id(conn, "distribution_returns", "return_id", "RET-", 4)
+    conn.execute(
+        """INSERT INTO distribution_returns(return_id, dispatch_id, site_id, item_id, quantity, returned_at, recorded_by)
+           VALUES (?,?,?,?,?,?,?)""",
+        (return_id, dispatch_id, site_id, item_id, quantity, when, staff_id),
+    )
+    conn.execute(
+        """INSERT INTO stock_movements(warehouse_id, item_id, moved_at, movement_type, reason, quantity, dispatch_id, reference, recorded_by)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (warehouse_id, item_id, when, "received", "distribution_return", quantity, None, return_id, staff_id),
+    )
+    db.audit(
+        conn,
+        actor_id=staff_id,
+        channel=channel,
+        action="create",
+        entity_table="distribution_returns",
+        entity_id=return_id,
+        after={"dispatch_id": dispatch_id, "warehouse_id": warehouse_id, "site_id": site_id, "item_id": item_id, "quantity": quantity},
+        at=when,
+    )
+    return return_id
