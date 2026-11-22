@@ -29,7 +29,7 @@ def test_evaluation_is_consistent(conn, model) -> None:  # noqa: ANN001
     assert sum(sum(r) for r in ev.matrix) == n_test
     diag = sum(ev.matrix[i][i] for i in range(len(ev.labels)))
     assert ev.accuracy == pytest.approx(diag / n_test)
-    assert round(ev.accuracy, 3) == 0.765
+    assert round(ev.accuracy, 3) == 0.908
     assert len(ev.misclassified) == n_test - diag
     for i, row in enumerate(ev.per_category):
         assert row["category"] == ev.labels[i]
@@ -39,7 +39,14 @@ def test_evaluation_is_consistent(conn, model) -> None:  # noqa: ANN001
     assert sum(r["notes"] for r in ev.per_category) == n_test
     assert sum(r["notes"] for r in ev.per_language) == n_test
     assert all(m["true"] != m["predicted"] for m in ev.misclassified)
-    assert p03.weakest_category(ev)["category"] == "health"
+    assert p03.weakest_category(ev)["category"] == "shelter"
+
+
+def test_classifier_meets_quality_targets(conn, model) -> None:  # noqa: ANN001
+    ev = p03.evaluate(conn, model)
+    assert ev.accuracy >= 0.85
+    assert ev.blank_share < 0.25
+    assert min(r["accuracy"] for r in ev.per_category) >= 0.70
 
 
 def test_threshold_blank_and_shown(conn, model) -> None:  # noqa: ANN001
@@ -68,9 +75,9 @@ def test_classifier_low_confidence_left_blank(model) -> None:  # noqa: ANN001
     # Above the threshold (threshold lower than the confidence): shown, even for a vague note at a tiny threshold.
     assert classifier.predict(model, FOOD, conf - 0.001).category == "food"
     assert classifier.predict(model, VAGUE, 0.0001).category is not None
-    # A threshold of 0.99 blanks both.
-    assert classifier.predict(model, FOOD, 0.99).category is None
-    assert classifier.predict(model, VAGUE, 0.99).category is None
+    # A threshold of 1.0 blanks both (a probability is never above 1).
+    assert classifier.predict(model, FOOD, 1.0).category is None
+    assert classifier.predict(model, VAGUE, 1.0).category is None
 
 
 def test_empty_text_is_blank(model) -> None:  # noqa: ANN001
@@ -99,10 +106,10 @@ def test_app_try_note_walkthrough(app_test) -> None:  # noqa: ANN001
     metrics = {m.label: m.value for m in at.metric}
     assert metrics["Training notes (count)"] == "383"
     assert metrics["Test notes (count)"] == "217"
-    assert metrics["Accuracy, test notes (%)"] == "76.5%"
-    assert metrics["Left blank (% of notes)"] == "43.8%"
-    assert metrics["Accuracy if shown (%)"] == "100.0%"
-    assert any("Weakest category: Health at 44.7%" in c.value for c in at.caption)
+    assert metrics["Accuracy, test notes (%)"] == "90.8%"
+    assert metrics["Left blank (% of notes)"] == "23.0%"
+    assert metrics["Accuracy if shown (%)"] == "97.0%"
+    assert any("Weakest category: Shelter at 83.3%" in c.value for c in at.caption)
 
     at.text_area(key="p03_note").set_value(FOOD).run()
     assert not at.exception

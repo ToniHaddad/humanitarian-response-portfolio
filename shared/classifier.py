@@ -34,8 +34,8 @@ class Prediction:
 def build_pipeline() -> Pipeline:
     return Pipeline(
         [
-            ("tfidf", TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 4), min_df=2, sublinear_tf=True)),
-            ("clf", LogisticRegression(max_iter=2000, C=4.0, random_state=0)),
+            ("tfidf", TfidfVectorizer(analyzer="char_wb", ngram_range=(2, 5), min_df=1, sublinear_tf=True)),
+            ("clf", LogisticRegression(max_iter=5000, C=200.0, random_state=0)),
         ]
     )
 

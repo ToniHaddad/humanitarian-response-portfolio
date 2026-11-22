@@ -252,7 +252,7 @@ def test_suggestion_uses_shared_classifier(conn: sqlite3.Connection, model: Any,
 
 def test_threshold_setting_changes_blank_decision(conn: sqlite3.Connection, model: Any) -> None:
     conf = p01.suggest(conn, model, FOOD_NOTE).confidence
-    db.set_setting(conn, "classifier_confidence_threshold", str(min(0.999, conf + 0.01)), "CRD-01")
+    db.set_setting(conn, "classifier_confidence_threshold", str(conf + 0.001), "CRD-01")
     assert p01.suggest(conn, model, FOOD_NOTE).category is None
 
 
