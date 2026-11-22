@@ -42,11 +42,10 @@ Tests-pass cells for 17 to 20 were confirmed by running each project's test file
 ## Not verified
 - Server mode has never been run under Docker: the image was not built, `docker compose up` was not executed, no container health check ran. Only static checks (`tests/test_server_mode.py`) and the backup, restore and health-check scripts on a temporary database were run.
 - Docker-specific behavior is unconfirmed: that the pinned requirements install on `python:3.12-slim`, volume permissions for the non-root user, the port range and the arithmetic in the backup health check, and the start-up time of the apps container.
-- The GitHub Actions workflow (`.github/workflows/ci.yml`) has never run on GitHub. The same commands pass locally on Windows; they were not run on Linux or macOS.
-- The "Try this demo" walkthroughs were followed through the domain functions and Streamlit's test harness, not by clicking in a browser. Screenshots are real captures, mostly of the first screen.
+- The GitHub Actions workflow passes on Linux (style check and tests). The README's macOS and Linux commands were not typed by hand.
+- Every "Try this demo" walkthrough was followed on two differently dated copies of the demo data, through the domain functions and Streamlit's test harness, not by clicking in a browser. Screenshots are real captures, mostly of the first screen.
 - The server login is one shared staff username and password and one shared API token, not one account per person. The login gate is covered by tests but was not tried on a running server.
 - Arabic right-to-left rendering was inspected only in the Project 04 screenshot; the Arabic rows in Project 03 were not inspected visually.
-- Seeded figures quoted in project READMEs depend on the seed date and were read on seeds built on 2026-11-16 and 2026-11-22.
 - The launcher opening a visible browser window was not exercised (checks used `--no-browser`).
 - The Project 20 scheduled runs were exercised only through the tests and the "run now" paths, not over a long unattended period; the API docs page (`/docs`) needs network access for its scripts, `/reference` does not.
 - Backups stay on the same machine as the database until they are copied away.
