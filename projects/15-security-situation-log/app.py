@@ -55,7 +55,7 @@ ui.metric_row(
     [
         ("Areas", len(board)),
         ("Restricted or worse (count)", sum(1 for r in board if (r["current_level"] or 0) >= security.BLOCKING_LEVEL)),
-        ("Suggestion differs from advisory (areas)", len(differing)),
+        ("Differs from advisory (areas)", len(differing)),
         ("Unverified reports in window (count)", sum(r["unverified_in_window"] for r in board)),
     ]
 )

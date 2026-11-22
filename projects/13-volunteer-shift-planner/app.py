@@ -32,10 +32,10 @@ unfilled = sum(s["unfilled"] for s in slots)
 ui.metric_row(
     [
         ("Shifts", len({s["shift_id"] for s in slots})),
-        ("Unfilled role slots (people)", unfilled, "Required count minus suggested or confirmed assignments."),
+        ("Unfilled slots (people)", unfilled, "Required count minus suggested or confirmed assignments."),
         ("Overlapping assignment pairs", len(over)),
         ("Assignments to review", len(invalid), "Volunteer lacks the training or a covering availability window."),
-        ("Suggestions available (people)", len(proposals)),
+        ("Suggested (people)", len(proposals)),
     ]
 )
 

@@ -47,14 +47,14 @@ ui.metric_row(
     [
         ("Training notes (count)", n_train),
         ("Test notes (count)", ev.n_test),
-        ("Overall accuracy on test notes (%)", f"{ev.accuracy:.1%}", "Share of test notes where the top guess equals the true category."),
+        ("Accuracy, test notes (%)", f"{ev.accuracy:.1%}", "Share of test notes where the top guess equals the true category."),
         (
-            f"Left blank at threshold {threshold:.2f} (% of test notes)",
+            "Left blank (% of notes)",
             f"{ev.blank_share:.1%}",
-            f"{ev.blank_count} of {ev.n_test} test notes have confidence below the threshold and are left for the operator.",
+            f"{ev.blank_count} of {ev.n_test} test notes have confidence below the threshold ({threshold:.2f}) and are left for the operator.",
         ),
         (
-            "Accuracy when shown (%)",
+            "Accuracy if shown (%)",
             "n/a" if ev.shown_accuracy is None else f"{ev.shown_accuracy:.1%}",
             f"Accuracy on the {ev.shown_count} test notes whose confidence reaches the threshold.",
         ),

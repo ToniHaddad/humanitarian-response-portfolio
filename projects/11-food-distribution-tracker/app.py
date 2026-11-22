@@ -228,7 +228,7 @@ ui.metric_row(
         ("Standard parcels (parcels)", fc_in_use.standard_parcels),
         ("Small parcels (parcels)", fc_in_use.small_parcels),
         ("All parcels (parcels)", fc_in_use.parcels_total, "standard + small parcels; meals are not included"),
-        ("Ready-to-eat meals (meals)", fc_in_use.rte_meals, "a separate unit, never added to parcels"),
+        ("Ready meals (meals)", fc_in_use.rte_meals, "a separate unit, never added to parcels"),
     ]
 )
 

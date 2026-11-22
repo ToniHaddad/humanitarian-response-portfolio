@@ -99,7 +99,7 @@ def test_app_try_note_walkthrough(app_test) -> None:  # noqa: ANN001
     metrics = {m.label: m.value for m in at.metric}
     assert metrics["Training notes (count)"] == "383"
     assert metrics["Test notes (count)"] == "217"
-    assert metrics["Overall accuracy on test notes (%)"] == "76.5%"
+    assert metrics["Accuracy, test notes (%)"] == "76.5%"
 
     at.text_area(key="p03_note").set_value(FOOD).run()
     assert not at.exception
