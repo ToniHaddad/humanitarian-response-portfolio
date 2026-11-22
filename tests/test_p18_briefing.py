@@ -170,3 +170,30 @@ def test_day_without_conflicts_can_be_approved(conn: sqlite3.Connection) -> None
 def test_app_starts(app_test) -> None:  # noqa: ANN001
     at = app_test(18).run()
     assert not at.exception
+
+
+def test_draft_body_fits_one_page_with_parcels_and_meals_apart(conn: sqlite3.Connection, scenario: dict) -> None:
+    bid = _draft(conn, scenario["conflict_date"])
+    body = brf.get_briefing(conn, bid)["content_md"]
+    assert len(body.splitlines()) <= 50 and len(body) <= 4000
+    rows = {line.split("|")[1].strip(): line for line in body.splitlines() if line.startswith("| ") and "|" in line[2:]}
+    parcels, meals = rows["Food parcels distributed"], rows["Ready-to-eat meals distributed"]
+    assert "| parcels |" in parcels and "| meals |" in meals and "| meals |" not in parcels and "| parcels |" not in meals
+
+
+def test_app_coordinator_edits_text_before_approval(app_test, conn: sqlite3.Connection, scenario: dict) -> None:  # noqa: ANN001
+    at = app_test(18).run()
+    at.button(key="p18_generate").click().run()
+    assert not at.exception
+    bid = at.selectbox(key="p18_current").value
+    area = at.text_area(key=f"p18_text_{bid}")
+    area.set_value(area.value + "\n## Coordinator note\nChecked by the coordinator.\n")
+    at.button(key="p18_save").click().run()
+    assert not at.exception and [s.value for s in at.success][-1] == "Edits saved."
+    assert "Checked by the coordinator." in brf.get_briefing(conn, bid)["content_md"]
+    for rv in [b for b in at.button if b.label == "Save review"]:
+        rv.click().run()
+    at.checkbox(key=f"confirm_tick_p18_approve_{bid}").check()
+    [b for b in at.button if b.label == "Approve briefing"][0].click().run()
+    assert not at.exception
+    assert "Checked by the coordinator." in brf.export_markdown(conn, bid)

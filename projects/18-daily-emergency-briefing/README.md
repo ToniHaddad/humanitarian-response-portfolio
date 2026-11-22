@@ -22,6 +22,7 @@ Tables `field_updates`, `calls`, `complaints`, `service_requests`, `v_stock_on_h
 - One comparison rule and exact equality, with no tolerance.
 - Conflict decisions: "records are right" (resolved), "field report is right, records need correcting" and "cannot decide" (both listed as unresolved items in the export).
 - Text edits change the Markdown body only; figures and sources stay as calculated.
+- One page: the draft body is the figures table (11 rows, source IDs cut to six per figure, the rest in the appendix of the export), the day's field updates and a short notes line, about 30 lines on the seeded day. The list of field updates is not capped, so a day with very many updates runs longer than a page.
 - No extra libraries beyond `requirements.txt`.
 
 ## Launch
@@ -35,13 +36,13 @@ Port 8518.
 ![Daily emergency briefing page](screenshot.png)
 
 ## Try this demo
-The page opens on the seeded conflict date (`demo.scenarios` -> `p18`).
-1. Press "Generate draft briefing". A draft is created with 11 figures, each with its source table and record IDs.
-2. Section 3 shows one conflict: `FU-0008` at `SITE-02` says 52 households, the records (37 `distributions` rows) give 37, difference +15. Section 5 says approval is blocked until it is reviewed.
-3. Choose a decision, add a note, press "Save review". The conflict shows as reviewed.
-4. Optionally edit the Markdown text and press "Save edits".
-5. Tick the confirmation box, choose a coordinator and press "Approve briefing".
-6. Press "Download approved briefing (Markdown)". Observed result: the file holds the figures table (18 calls, 37 households, 55 parcels, 378 meals), the conflict review with both numbers, an "Unresolved items" section (empty after "records are right", the conflict listed after "cannot decide") and an appendix with every record ID. The audit log has create, resolve and approve entries.
+The page opens on the seeded conflict date (`demo.scenarios` -> `p18`, key `conflict_date`: the day before the seed day, so it moves with the seed). Counts of calls, complaints and service requests are random per seed and differ from day to day, so they are not quoted here; the distribution, field-update and stock figures below are fixed by the seed content and are the same whatever day you seed.
+1. Press "Generate draft briefing". A draft (the next free ID after `BRF-0001`) is created for the date shown, with 11 figures. Under "2. Figures and their source records" every figure has a unit, a source table and record IDs. Check that "Calls received" equals the number of call IDs listed beside it, and that "Households reached" (37) shows 37 `DST-` IDs. Parcels (55) and meals (378) are separate rows with separate units.
+2. Section 3 shows one conflict: `FU-0008` at `SITE-02` says 52 households, the records (37 `distributions` rows) give 37, difference +15. Status: NOT REVIEWED. Section 5 says approval is blocked until it is reviewed, and offers no approve button yet.
+3. Choose a decision, add a note, press "Save review". The conflict now shows the decision and the badge changes; section 5 now offers the approval form.
+4. Optional: in section 4 change the Markdown text and press "Save edits" ("Edits saved."). The change is in the exported file later.
+5. In section 5, press "Approve briefing" without ticking the box: "Tick the confirmation box first. Nothing was changed." Then tick the confirmation box, choose a coordinator and press "Approve briefing". The page shows "Approved by ... at ..." and the text can no longer be edited.
+6. Press "Download approved briefing (Markdown)" (or open "Preview export"). The file holds the figures table, your edited text, the conflict review with both numbers (52 and 37), an "Unresolved items" section (empty after "records are right"; the conflict listed after "cannot decide" or "field report is right") and an appendix with every record ID. Each figure in the file equals the count of the IDs the appendix lists for it. The audit log (Project 20) has create, resolve, update (if you edited) and approve entries for the briefing.
 
 ## Tests
-`tests/test_p18_briefing.py`: figures equal independent SQL on the records; parcels and meals stay separate units; every figure has a source table and IDs; the seeded conflict (52 vs 37) is flagged and a matching figure is not; approval refused without confirmation, for an unknown or non-coordinator ID, and while a conflict is unreviewed; the export contains the approved figures, conflict review, unresolved items and appendix; approved briefings are locked; audit trail; the app starts (`app_test(18)`).
+`tests/test_p18_briefing.py`: figures equal independent SQL on the records; parcels and meals stay separate units; every figure has a source table and IDs; the seeded conflict (52 vs 37) is flagged and a matching figure is not; approval refused without confirmation, for an unknown or non-coordinator ID, and while a conflict is unreviewed; the export contains the approved figures, conflict review, unresolved items and appendix; approved briefings are locked; audit trail; the draft body is short enough for one page and lists parcels and meals as separate rows; the coordinator edits the text in the page before approval and the edit reaches the export; the app starts (`app_test(18)`).
