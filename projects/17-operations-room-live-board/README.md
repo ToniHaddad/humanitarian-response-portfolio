@@ -22,7 +22,7 @@ The shared SQLite database, read only: `position_reports` (view `v_last_position
 ## Assumptions
 - The board opens the database with `PRAGMA query_only = ON`, so it cannot write even by mistake; there are no buttons, selectors or sidebar. It refreshes every `board_refresh_seconds` (30 s in the seed, never below 5 s).
 - Vehicle limit: the configured `stale_position_minutes`. The map panel's own badge uses the newest report of any vehicle, so it turns stale only when the whole position feed has stopped; single vehicles are flagged individually.
-- Panels fed by people rather than a feed get fixed limits in `p17_board.PANEL_LIMIT_MINUTES`: convoys 24 h (newest `convoy_events`), requests 4 h (newest `request_events` or request), advisories 24 h, stock and alerts 24 h (newest `stock_movements` or alert), distributions 4 h (newest `recorded_at`).
+- Panels fed by people rather than a feed get these limits (constants in `p17_board.PANEL_LIMIT_MINUTES`, overridable by settings, see Limitations): convoys 24 h (newest `convoy_events`), requests 4 h (newest `request_events` or request), advisories 24 h, stock and alerts 24 h (newest `stock_movements` or alert), distributions 4 h (newest `recorded_at`).
 - Requests panel: "open" is every request not closed; "not yet assigned" is status `new`.
 - Convoy panel lists convoys that are departed, approved or planned; a departed convoy flags its stale vehicles.
 
@@ -30,7 +30,8 @@ The shared SQLite database, read only: `position_reports` (view `v_last_position
 - Built for a 1920 x 1080 screen in a full-screen browser (F11). Type scales with the page but small screens will scroll.
 - The map shows labels that can overlap when vehicles are close together. Axes are not equal-scaled (the grid is stretched to the panel).
 - At most the first four rows of each list are shown so the page fits one screen.
-- Limits for the human-fed panels are constants, not settings (shared settings are not edited by this project).
+- Limits for the human-fed panels default to the constants in `p17_board.PANEL_LIMIT_MINUTES`. A row in `settings` overrides one when it exists and is a positive number (the project never writes settings; add the row by hand or through another tool): `board_panel_limit_convoys_minutes`, `board_panel_limit_requests_minutes`, `board_panel_limit_advisories_minutes`, `board_panel_limit_stock_minutes`, `board_panel_limit_distributions_minutes`. With no row the constants apply; the seed adds none.
+- Map labels: vehicle labels are drawn large; area names are small, light grey and below their point, and an area name is left out when a vehicle sits within 6 km of its centre (`p17_board.label_free_areas`). Two vehicles very close to each other can still overlap.
 - The board does not start or stop the simulator; Project 20 does.
 
 ## Launch

@@ -30,7 +30,7 @@ def position_map(positions, areas):  # noqa: ANN001, ANN202
         label="label",
         color="state",
         hover=["convoy_id", "reported_at"],
-        areas=areas,
+        areas=board.label_free_areas(areas, positions),
         height=500,
         stagger_labels=True,
     )
@@ -43,6 +43,10 @@ def position_map(positions, areas):  # noqa: ANN001, ANN202
             trace.marker.symbol = "x" if stale else "circle"
             trace.marker.line = {"width": 4 if stale else 1, "color": color if stale else "white"}
             trace.textfont = {"size": 17, "color": color}
+    for trace in fig.data:  # area names: smaller, lighter and below their point, so vehicle labels win
+        if trace.mode == "text":
+            trace.textfont = {"size": 12, "color": "#b8b8b8"}
+            trace.textposition = "bottom center"
     fig.update_xaxes(range=[-8, 104], constrain="domain")
     fig.update_yaxes(scaleanchor=None, constrain="domain")
     fig.update_layout(

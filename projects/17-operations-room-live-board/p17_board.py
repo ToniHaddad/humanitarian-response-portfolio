@@ -13,6 +13,7 @@ same `is_stale` rule (exactly at the limit is not stale).
 
 from __future__ import annotations
 
+import math
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
@@ -31,6 +32,7 @@ PANEL_LIMIT_MINUTES: dict[str, float] = {
     "stock": 1440.0,
     "distributions": 240.0,
 }
+PANEL_LIMIT_SETTING = "board_panel_limit_{panel}_minutes"  # optional settings row that overrides a constant above
 DEFAULT_REFRESH_SECONDS = 30
 MIN_REFRESH_SECONDS = 5
 
@@ -58,6 +60,23 @@ def freshness(newest: str | None, limit_minutes: float, now: datetime | None = N
 def refresh_seconds(conn: sqlite3.Connection) -> int:
     value = int(db.get_setting_float("board_refresh_seconds", DEFAULT_REFRESH_SECONDS, conn))
     return max(MIN_REFRESH_SECONDS, value)
+
+
+def panel_limit(conn: sqlite3.Connection, panel: str) -> float:
+    """Staleness limit in minutes for a panel: the `board_panel_limit_<panel>_minutes` setting when present and positive, else the constant."""
+    value = db.get_setting_float(PANEL_LIMIT_SETTING.format(panel=panel), PANEL_LIMIT_MINUTES[panel], conn)
+    return value if value > 0 else PANEL_LIMIT_MINUTES[panel]
+
+
+def label_free_areas(areas: pd.DataFrame, positions: pd.DataFrame, min_km: float = 6.0) -> pd.DataFrame:
+    """Area names to draw on the map: drops a name when a vehicle sits within `min_km` of its centre, so vehicle labels stay readable."""
+    if areas.empty or positions.empty:
+        return areas
+    pts = positions.dropna(subset=["x_km", "y_km"])
+    keep = [
+        not any(math.hypot(a.x_km - v.x_km, a.y_km - v.y_km) < min_km for v in pts.itertuples()) for a in areas.itertuples()
+    ]
+    return areas[keep]
 
 
 def _newest(conn: sqlite3.Connection, *selects: str) -> str | None:
@@ -143,7 +162,7 @@ def convoy_rows(conn: sqlite3.Connection, now: datetime | None = None) -> list[d
 
 def convoy_freshness(conn: sqlite3.Connection, now: datetime | None = None) -> Freshness:
     newest = _newest(conn, "SELECT MAX(at) FROM convoy_events")
-    return freshness(newest, PANEL_LIMIT_MINUTES["convoys"], now)
+    return freshness(newest, panel_limit(conn, "convoys"), now)
 
 
 # -- requests and callbacks ----------------------------------------------------
@@ -169,7 +188,7 @@ def request_summary(conn: sqlite3.Connection, now: datetime | None = None) -> di
 
 def request_freshness(conn: sqlite3.Connection, now: datetime | None = None) -> Freshness:
     newest = _newest(conn, "SELECT MAX(at) FROM request_events", "SELECT MAX(created_at) FROM service_requests")
-    return freshness(newest, PANEL_LIMIT_MINUTES["requests"], now)
+    return freshness(newest, panel_limit(conn, "requests"), now)
 
 
 # -- advisories ----------------------------------------------------------------
@@ -193,7 +212,7 @@ def active_advisories(conn: sqlite3.Connection) -> list[dict[str, Any]]:
 
 
 def advisory_freshness(conn: sqlite3.Connection, now: datetime | None = None) -> Freshness:
-    return freshness(_newest(conn, "SELECT MAX(decided_at) FROM advisories"), PANEL_LIMIT_MINUTES["advisories"], now)
+    return freshness(_newest(conn, "SELECT MAX(decided_at) FROM advisories"), panel_limit(conn, "advisories"), now)
 
 
 # -- stock alerts ----------------------------------------------------------------
@@ -223,7 +242,7 @@ def open_alerts(conn: sqlite3.Connection) -> list[dict[str, Any]]:
 
 def stock_freshness(conn: sqlite3.Connection, now: datetime | None = None) -> Freshness:
     newest = _newest(conn, "SELECT MAX(moved_at) FROM stock_movements", "SELECT MAX(fired_at) FROM alerts")
-    return freshness(newest, PANEL_LIMIT_MINUTES["stock"], now)
+    return freshness(newest, panel_limit(conn, "stock"), now)
 
 
 # -- today's distributions against plan --------------------------------------------
@@ -272,4 +291,4 @@ def distributions_today(conn: sqlite3.Connection, today: str | None = None) -> d
 
 def distribution_freshness(conn: sqlite3.Connection, now: datetime | None = None) -> Freshness:
     newest = _newest(conn, "SELECT MAX(recorded_at) FROM distributions")
-    return freshness(newest, PANEL_LIMIT_MINUTES["distributions"], now)
+    return freshness(newest, panel_limit(conn, "distributions"), now)

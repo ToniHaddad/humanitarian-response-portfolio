@@ -206,3 +206,25 @@ def test_request_summary_counts_overdue(conn: sqlite3.Connection) -> None:
 def test_app_starts(app_test) -> None:  # noqa: ANN001
     at = app_test(17).run()
     assert not at.exception
+
+
+def test_panel_limit_reads_settings_with_constant_fallback(conn: sqlite3.Connection) -> None:
+    assert board.panel_limit(conn, "requests") == board.PANEL_LIMIT_MINUTES["requests"]
+    with conn:
+        db.set_setting(conn, "board_panel_limit_requests_minutes", "90", "ADM-01")
+    assert board.panel_limit(conn, "requests") == 90.0
+    with conn:
+        db.set_setting(conn, "board_panel_limit_requests_minutes", "not a number", "ADM-01")
+    assert board.panel_limit(conn, "requests") == board.PANEL_LIMIT_MINUTES["requests"]
+    with conn:
+        db.set_setting(conn, "board_panel_limit_requests_minutes", "0", "ADM-01")
+    assert board.panel_limit(conn, "requests") == board.PANEL_LIMIT_MINUTES["requests"]
+
+
+def test_area_names_near_a_vehicle_are_dropped_from_the_map(conn: sqlite3.Connection) -> None:
+    positions = board.vehicle_positions(conn)
+    areas = board.areas_frame(conn)
+    kept = board.label_free_areas(areas, positions)
+    assert len(kept) <= len(areas)
+    for a in kept.itertuples():
+        assert all(((a.x_km - v.x_km) ** 2 + (a.y_km - v.y_km) ** 2) ** 0.5 >= 6.0 for v in positions.dropna(subset=["x_km"]).itertuples())
