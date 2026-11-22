@@ -136,7 +136,15 @@ def main(argv: list[str] | None = None) -> int:
     proc = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         wait_healthy(port, 90)
-        capture(f"http://localhost:{port}" + (f"/?{args.query}" if args.query else ""), Path(args.out), args.width, args.height, args.full_page, args.wait_text, args.settle)
+        capture(
+            f"http://localhost:{port}" + (f"/?{args.query}" if args.query else ""),
+            Path(args.out),
+            args.width,
+            args.height,
+            args.full_page,
+            args.wait_text,
+            args.settle,
+        )
         print(f"Saved {args.out}")
     finally:
         proc.terminate()
