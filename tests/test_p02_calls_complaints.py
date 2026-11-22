@@ -255,6 +255,7 @@ def test_walkthrough_two_calls_one_complaint(db_path, conn: sqlite3.Connection) 
 def test_walkthrough_through_the_app(app_test, conn: sqlite3.Connection) -> None:
     """The README walkthrough, clicked through the real page."""
     calls0, complaints0 = counts(conn)
+    new_id = db.next_id(conn, "complaints", "complaint_id", "CMP-", 4)
     at = app_test(2).run()
     at.selectbox(key="p02_call_type").select("complaint").run()
     at.radio(key="p02_link_c").set_value("New complaint").run()
@@ -266,9 +267,9 @@ def test_walkthrough_through_the_app(app_test, conn: sqlite3.Connection) -> None
     assert counts(conn) == (calls0 + 1, complaints0 + 1)
     at.selectbox(key="p02_call_type").select("complaint").run()
     at.radio(key="p02_link_c").set_value("Existing open complaint").run()
-    at.selectbox(key="p02_pick_c").select("CMP-0029")
+    at.selectbox(key="p02_pick_c").select_index(0)  # the newest open complaint is listed first
     at.text_area(key="p02_notes").input("Calling again about the same complaint.")
     at.button[0].click().run()
     assert not at.exception
     assert counts(conn) == (calls0 + 2, complaints0 + 1)
-    assert p.complaint_call_count(conn, "CMP-0029") == 2
+    assert p.complaint_call_count(conn, new_id) == 2

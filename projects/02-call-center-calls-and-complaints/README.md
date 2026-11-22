@@ -45,20 +45,13 @@ Port 8502.
 ![Calls and complaints](screenshot.png)
 
 ## Try this demo
-The figures below are for a database built with the anchor the tests use, with the demo clock frozen at the same moment:
+The data is generated relative to the moment the seed runs, so the figures on the page differ from day to day. Read the starting values from the page and compare the **changes**. Seed with `python -m shared.seed --reset` and start the app at once (`python run.py 02`). If you seed with `--anchor` at another moment, set `PORTFOLIO_FROZEN_NOW` to the same moment before starting the app, so the app's "now" matches the data.
 
-```powershell
-$env:PORTFOLIO_DB_PATH = "data\agent02.db"
-$env:PORTFOLIO_FROZEN_NOW = "2026-11-16T10:00:00"
-.\.venv\Scripts\python.exe -m shared.seed --reset --anchor 2026-11-16T10:00:00
-.\.venv\Scripts\python.exe run.py 02
-```
-
-1. Open http://localhost:8502. With **Period = Today**, note the figures: **Calls received 2**, **New complaints 0**, **Open complaints 12**.
-2. Under **Log a call**, choose Call type **complaint** and Complaint link **New complaint**. Pick Area **AR-01 Cedarbrook**, Complaint topic **waiting_time**, type a note ("Waited more than four hours."), and press **Log call** (operator in the sidebar: OPR-01). The page reports the new complaint **CMP-0029**.
-3. Choose Call type **complaint** again, Complaint link **Existing open complaint**, pick **CMP-0029**, type a note ("Calling again about the same complaint.") and press **Log call**. The call is marked as a repeat.
-4. **Expected result**: Calls received **4** (+2), New complaints **1** (+1), Open complaints **13**. Under **Complaint handling**, select CMP-0029: **Calls on this complaint = 2**, and the timeline lists both calls (the second marked "repeat"). Two incoming calls, one complaint.
-5. Optional: in the same section choose an owner and press **Assign owner** (status becomes in progress), record a follow-up, then enter a resolution and press **Close complaint**. Tick the confirmation box first; without it nothing changes. The complaint then shows status closed and Open complaints drops back to 12.
+1. Open http://localhost:8502. With **Period = Today**, read the three tiles: **Calls received**, **New complaints** and **Open complaints**.
+2. Under **Log a call**, choose Call type **complaint** and Complaint link **New complaint**. Pick Area **AR-01 Cedarbrook**, Complaint topic **waiting_time**, type a note ("Waited more than four hours."), and press **Log call** (operator in the sidebar: OPR-01). The page reports a new call and the new complaint's ID (the next free CMP number). Call it *the new complaint*.
+3. Choose Call type **complaint** again, Complaint link **Existing open complaint**, pick the new complaint (it is first in the list, "1 calls"), type a note ("Calling again about the same complaint.") and press **Log call**. The page says the call is a repeat call.
+4. **Expected result**, compared with step 1: Calls received **+2**, New complaints **+1**, Open complaints **+1**. Under **Complaint handling**, select the new complaint: **Calls on this complaint = 2**, and the timeline lists both calls (the second marked "repeat"). Two incoming calls, one complaint.
+5. Optional: in the same section choose an owner and press **Assign owner** (status becomes in progress), record a follow-up (a note is required), then enter a resolution and press **Close complaint**. Press it first without ticking the confirmation box: a warning appears and nothing changes. Then tick the box and press it again. The complaint shows status closed and Open complaints is back to the value from step 1.
 
 ## Tests
 `tests/test_p02_calls_complaints.py` (15 tests): the app starts; the Part 4 repeat-call test (calls +2, complaints +1, that complaint's call count 2, `is_repeat` 0 then 1); period figures against direct SQL; recurring topics; information calls add no complaint; a service-request call creates exactly one linked request with a `created` event; follow-up calls; invalid calls write nothing; no links to closed complaints; owner assignment and follow-ups with audit rows; closing without confirmation raises `ConfirmationRequired` and leaves the complaint open; closing with confirmation; and the walkthrough, both through the domain functions and clicked through the page with `AppTest`.
