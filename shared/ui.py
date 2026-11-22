@@ -41,6 +41,8 @@ html, body, [class*="css"] { font-family: "Segoe UI", Tahoma, "Noto Naskh Arabic
 .wrl-who { color: var(--muted); font-size: 1.02rem; margin-top: -0.6rem; margin-bottom: 0.6rem; }
 .wrl-rtl { direction: rtl; text-align: right; unicode-bidi: plaintext; font-size: 1.08rem; line-height: 1.7; }
 .wrl-auto { unicode-bidi: plaintext; }
+/* Typed or pre-filled Arabic in a note box reads right-to-left, English left-to-right. */
+.stTextArea textarea, .stTextInput input { unicode-bidi: plaintext; text-align: start; }
 .wrl-badge { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
 .wrl-ok { background: #E3F4EC; color: #0E5C3A; border: 1px solid #0E5C3A; }
 .wrl-warn { background: #FFF1D6; color: #6B3E00; border: 1px solid #B35C00; }
