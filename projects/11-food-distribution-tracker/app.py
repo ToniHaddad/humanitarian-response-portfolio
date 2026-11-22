@@ -297,6 +297,16 @@ ui.table(
 )
 
 
+WHATIF_LABELS = {
+    "person_days.ITM-FP-STD": "Person-days per standard parcel",
+    "person_days.ITM-FP-SML": "Person-days per small parcel",
+    "meals_per_person_per_day": "Meals per person per day",
+    "persons_per_standard_parcel": "People per standard parcel",
+    "rte_meals_per_person_per_visit": "Ready meals per person per visit",
+    "small_parcel_max_household_size": "Largest household for a small parcel (people)",
+}
+
+
 def reset_edits() -> None:
     # Runs as a callback before the next script run, so it opens its own connection.
     for r in db.query_all("SELECT assumption_key, value FROM forecast_assumptions"):
@@ -304,11 +314,11 @@ def reset_edits() -> None:
 
 
 with st.form("p11_whatif"):
-    cols = st.columns(len(rows))
-    for col, r in zip(cols, rows, strict=True):
+    cols = [c for _ in range(0, len(rows), 3) for c in st.columns(3)]
+    for col, r in zip(cols, rows, strict=False):
         key = r["assumption_key"]
         col.number_input(
-            f"{key} ({r['unit']})",
+            WHATIF_LABELS.get(key, f"{key} ({r['unit']})"),
             min_value=0.0 if key in p11.NON_NEGATIVE_ASSUMPTIONS else 0.5,
             step=10.0 if key.startswith("person_days.") else 1.0,
             key=EDIT_PREFIX + key,
