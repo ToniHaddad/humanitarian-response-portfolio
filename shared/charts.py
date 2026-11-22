@@ -93,12 +93,23 @@ def grid_map(
     title: str | None = None,
     areas: pd.DataFrame | None = None,
     height: int = 520,
+    stagger_labels: bool = False,
 ) -> go.Figure:
-    """Points on the invented 100 x 100 km grid (columns x_km, y_km). No real map tiles."""
+    """Points on the invented 100 x 100 km grid (columns x_km, y_km). No real map tiles.
+
+    stagger_labels: alternate the label position (above, below, right, left) point by point so close points stay readable.
+    """
     fig = px.scatter(
         df, x="x_km", y="y_km", color=color, size=size, text=label, hover_data=list(hover), color_discrete_sequence=PALETTE, size_max=40
     )
     fig.update_traces(textposition="top center")
+    if stagger_labels:
+        positions = ["top center", "bottom center", "middle right", "middle left"]
+        index = 0
+        for trace in fig.data:
+            n = len(trace.x) if trace.x is not None else 0
+            trace.textposition = [positions[(index + i) % len(positions)] for i in range(n)]
+            index += n
     if areas is not None:
         fig.add_trace(
             go.Scatter(

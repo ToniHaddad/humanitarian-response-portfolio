@@ -32,6 +32,7 @@ def position_map(positions, areas):  # noqa: ANN001, ANN202
         hover=["convoy_id", "reported_at"],
         areas=areas,
         height=500,
+        stagger_labels=True,
     )
     for trace in fig.data:
         color = STATE_COLOR.get(trace.name)

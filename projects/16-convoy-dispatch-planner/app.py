@@ -430,7 +430,7 @@ else:
     pts = [{"x_km": plan["origin"][0], "y_km": plan["origin"][1], "label": plan["origin_id"], "kind": "Origin warehouse"}]
     for s in stops:
         pts.append({"x_km": s["x_km"], "y_km": s["y_km"], "label": s["site_id"], "kind": "Blocked stop" if s["blocked"] else "Stop"})
-    fig = charts.grid_map(pd.DataFrame(pts), label="label", color="kind", title=None, height=440)
+    fig = charts.grid_map(pd.DataFrame(pts), label="label", color="kind", title=None, height=440, stagger_labels=True)
     for name, order, dash in (("Manual order", plan["manual_order"], "dot"), ("Suggested order", plan["suggested_order"], "solid")):
         if order:
             route = [plan["origin"], *[plan["positions"][s] for s in order], plan["origin"]]

@@ -104,6 +104,7 @@ fig.update_traces(
     },
     selector={"mode": "markers+text"},
 )
+fig.update_yaxes(range=[0, 110])  # headroom so a label above a point near the top edge is not clipped
 st.plotly_chart(fig, width="stretch")
 
 ui.section("Area table", "Click a column heading to sort.")
@@ -171,7 +172,6 @@ if weekly_df.empty:
 else:
     long = weekly_df.melt(id_vars="week_start", value_vars=["requests", "completed"], var_name="Measure", value_name="count")
     long["Measure"] = long["Measure"].map({"requests": "Requests", "completed": "Completed"})
-    st.plotly_chart(
-        charts.bar(long, "week_start", "count", "Week starting (date)", "Requests (count)", color="Measure"),
-        width="stretch",
-    )
+    weekly_fig = charts.bar(long, "week_start", "count", "Week starting (date)", "Requests (count)", color="Measure")
+    weekly_fig.update_yaxes(range=[0, float(long["count"].max()) * 1.15 + 1])
+    st.plotly_chart(weekly_fig, width="stretch")

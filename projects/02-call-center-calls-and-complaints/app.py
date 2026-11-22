@@ -49,11 +49,11 @@ ui.metric_row(
 left, right = st.columns(2)
 with left:
     by_type = pd.DataFrame({"call_type": list(fig["calls_by_type"]), "calls": list(fig["calls_by_type"].values())})
-    st.plotly_chart(
-        charts.bar(by_type, "call_type", "calls", "Call type", "Calls (count)", title="Calls received by type"),
-        width="stretch",
-        key="p02_chart_types",
-    )
+    types_fig = charts.bar(by_type, "call_type", "calls", "Call type", "Calls (count)", title="Calls received by type")
+    types_fig.update_yaxes(tickformat="d", dtick=max(1, -(-int(by_type["calls"].max() or 1) // 6)), rangemode="tozero")
+    types_fig.update_xaxes(automargin=True, title_standoff=12)
+    types_fig.update_layout(margin={"b": 110})
+    st.plotly_chart(types_fig, width="stretch", key="p02_chart_types")
 with right:
     st.markdown("**Recurring complaint topics**")
     st.caption(
