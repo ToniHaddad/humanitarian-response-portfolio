@@ -322,3 +322,10 @@ def test_app_walkthrough_conflict_then_resolve(app_test, db_path: Path) -> None:
         rec = record(c, rid)
         assert rec["version"] == version + 2 and rec["household_size"] == size + 1 and rec["urgency"] == "urgent"
         assert c.execute("SELECT resolved_by FROM sync_conflicts WHERE conflict_id = ?", (cid,)).fetchone()[0] == "CW-01"
+
+
+def test_seeded_conflict_is_a_real_conflict(conn: sqlite3.Connection) -> None:
+    """The seeded past conflict must have been a two-place edit: the device's base is older than the server version."""
+    rows = conn.execute("SELECT base_version, server_version FROM sync_conflicts").fetchall()
+    assert rows
+    assert all(r["base_version"] < r["server_version"] for r in rows)

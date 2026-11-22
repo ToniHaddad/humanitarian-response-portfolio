@@ -720,7 +720,7 @@ class Seeder:
                 updated_by=creator,
             )
             n_versions = 1 + (n % 3 if source != "data_entry" else 0)
-            if rid == "INT-0021":
+            if rid in ("INT-0015", "INT-0021"):
                 n_versions = 2
             for v in range(1, n_versions + 1):
                 when = created + timedelta(hours=6 * (v - 1))

@@ -4,6 +4,6 @@ number = 8
 slug = "offline-field-sync"
 title = "Offline field sync"
 group = "B"
-status = "in_progress"
+status = "built"
 user = "Field workers and caseworkers"
 task = "Capture intake records with no connection, sync them later, and resolve edit conflicts by choosing a version."

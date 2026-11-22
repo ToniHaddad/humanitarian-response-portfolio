@@ -69,7 +69,7 @@ Also try: choose **DEV-03** (offline, 2 pending changes), turn its connection on
 
 ## Tests
 
-`tests/test_p08_offline_sync.py` (20 tests) covers:
+`tests/test_p08_offline_sync.py` (21 tests) covers:
 
 - offline capture queues a pending create with a device-scoped ID and `sync_device` refuses while offline;
 - syncing online creates the record at version 1 and records the last sync time;
