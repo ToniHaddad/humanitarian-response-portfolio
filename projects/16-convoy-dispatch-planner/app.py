@@ -69,10 +69,9 @@ ui.table(
             {
                 "Convoy": c["convoy_id"],
                 "Name": c["name"],
-                "Planned date": c["planned_date"],
-                "Origin": c["origin_warehouse_id"],
                 "Status": c["status"],
-                "Coordinator": c["coordinator_id"],
+                "Planned date": c["planned_date"],
+                "Depot": c["origin_warehouse_id"],
                 "Vehicles (count)": c["vehicles"],
                 "Stops (count)": c["stops"],
                 "Load lines (count)": c["load_lines"],
@@ -164,17 +163,30 @@ ui.table(
         [
             {
                 "Vehicle": v["vehicle_id"],
-                "Type": v["vehicle_type"],
-                "Capacity (kg)": v["load_capacity_kg"],
-                "Home depot": v["home_warehouse_id"],
                 "Readiness": READY_LABEL[readiness[v["vehicle_id"]].status],
-                "Why not ready": "; ".join(readiness[v["vehicle_id"]].reasons),
-                "Warnings": "; ".join(readiness[v["vehicle_id"]].warnings),
+                "Issues (count)": len(readiness[v["vehicle_id"]].reasons) + len(readiness[v["vehicle_id"]].warnings),
+                "Capacity (kg)": v["load_capacity_kg"],
+                "Type": v["vehicle_type"],
+                "Depot": v["home_warehouse_id"],
             }
             for v in vehicles_all
         ]
     )
 )
+with st.expander("Why a vehicle is not ready, and warnings"):
+    issues = [
+        (v["vehicle_id"], readiness[v["vehicle_id"]].reasons, readiness[v["vehicle_id"]].warnings)
+        for v in vehicles_all
+        if readiness[v["vehicle_id"]].reasons or readiness[v["vehicle_id"]].warnings
+    ]
+    if not issues:
+        st.write("Every vehicle is ready with no warnings.")
+    for vid, reasons, warns in issues:
+        st.markdown(f"**{vid}**")
+        for r in reasons:
+            st.markdown(f"- Not ready: {r}")
+        for w in warns:
+            st.markdown(f"- Warning: {w}")
 if assigned:
     st.markdown("**Assigned to this convoy**")
     for v in assigned:
@@ -507,7 +519,10 @@ if cv["status"] in p16.TRANSITIONS["cancelled"]:
             act(lambda conn: p16.cancel(conn, cid, staff, reason), f"{cid} cancelled.")
 
 st.markdown("**Trip log (status changes)**")
-ui.table(pd.DataFrame(trip_log).rename(columns={"at": "At", "status": "Status", "staff_id": "Staff", "note": "Note"}))
+trip_df = pd.DataFrame(trip_log).rename(columns={"at": "At", "status": "Status", "staff_id": "Staff", "note": "Note"})
+if "Note" in trip_df:
+    trip_df["Note"] = trip_df["Note"].map(lambda n: n if not isinstance(n, str) or len(n) <= 60 else n[:57].rstrip() + "...")
+ui.table(trip_df)
 timestamps = {k: cv[k] for k in ("approved_at", "departed_at", "arrived_at", "returned_at") if cv[k]}
 if timestamps:
     st.caption(" · ".join(f"{k.replace('_at', '').capitalize()}: {v}" for k, v in timestamps.items()))
@@ -517,4 +532,15 @@ dispatches = db.query_df(
 )
 if not dispatches.empty:
     st.markdown("**Stock dispatched on this convoy (one ledger row each)**")
-    ui.table(dispatches)
+    ui.table(
+        dispatches.rename(
+            columns={
+                "dispatch_id": "Dispatch",
+                "site_id": "Site",
+                "item_id": "Item",
+                "quantity": "Quantity (units)",
+                "dispatched_at": "Dispatched at",
+                "dispatched_by": "By",
+            }
+        )
+    )
