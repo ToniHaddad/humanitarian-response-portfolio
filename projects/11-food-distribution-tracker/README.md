@@ -30,20 +30,22 @@ module `shared/food.py`; the forecast applies a documented due-date rule and par
 
 ## Assumptions
 
-- **Coverage days** = parcel days + meal days, each converted to days separately (`food.coverage_days`):
-  parcel days = parcels x person-days per parcel / people (rounded down); meal days = meals / (people x meals per person
-  per day) (rounded down). Seeded values: a standard parcel is 150 person-days (5 people for 30 days), a small parcel 60
-  person-days (2 people for 30 days), 3 meals per person per day.
-- **Coverage end** = distribution date + coverage days - 1 (the distribution day is day 1). A household's coverage end
-  is the latest end over all its distributions, recomputed from the stored quantities with the assumptions in use. The
+- **Parcel coverage days** come from parcels only (`food.parcel_coverage_days`): parcels x person-days per parcel /
+  people, rounded down. This is the household's expected days of coverage and what is stored. **Meal coverage days** are
+  a separate figure (`food.meal_coverage_days`): meals / (people x meals per person per day), rounded down. They are
+  shown beside the parcel days and never added to them or to the coverage end date. Seeded values: a standard parcel is
+  150 person-days (5 people for 30 days), a small parcel 60 person-days (2 people for 30 days), 3 meals per person per day.
+- **Parcel coverage end** = distribution date + parcel coverage days - 1 (the distribution day is day 1). A household's
+  coverage end is the latest end over its distributions that include parcels (a meals-only distribution gives none),
+  recomputed from the stored quantities with the assumptions in use. The
   stored `expected_coverage_days` (the value at recording time) is shown beside it.
 - **A household's site** for the forecast is the site of its most recent distribution; a household with none belongs
   to the site whose catchment includes its area.
 - **Due for support** in a window [start, end]: the coverage end date is before the end date, so the household runs out
   of food on or before the last day of the window. Households whose coverage already ended, and households with no
   recorded distribution, are due.
-- **Parcels required**: households of 1 or 2 people get 1 small parcel; larger households get one standard parcel per
-  5 people (editable), rounded up. Standard and small parcels are shown as separate counts, both in parcels.
+- **Parcels required** (the shared rule `food.parcel_plan`, also used by the seed): households of up to 2 people get 1
+  small parcel; larger households get one standard parcel per 5 people (editable), rounded up. Standard and small parcels are shown as separate counts, both in parcels.
 - **Ready-to-eat meals required**: only due households registered in the last 60 days (new arrivals), household size x
   6 meals (editable). Shown in meals. **Parcels and meals are never added together** in any total, metric, table or plan.
 - **Planned distributions** feed Project 10's warehouse forecast: one `distribution_plans` row per item with a quantity
@@ -56,8 +58,8 @@ module `shared/food.py`; the forecast applies a documented due-date rule and par
 - The forecast uses each household's current registered size; a size entered at a distribution only affects that
   distribution's coverage.
 - New arrivals are counted from today (registered in the last 60 days), not from the window start.
-- Recording a distribution is routine data entry: it records the acting staff member and is audited, but needs no
-  confirmation. Saving assumptions and saving a plan need a coordinator's confirmation.
+- Recording a distribution needs a staff confirmation (a field worker or coordinator ticks the confirmation box in the
+  form) and is audited. Saving assumptions and saving a plan need a coordinator's confirmation.
 - A second distribution for the same household on the same date is refused as a likely double entry.
 - The dispatch list offers dispatches of the chosen parcel type to the site on the distribution day or the evening
   before (when the seed's stock arrives). Recording never creates dispatches or stock movements: stock is Project 10's
@@ -84,19 +86,19 @@ Port 8511. Run from the repository root with the virtual environment's Python.
 
 The walkthrough household comes from the seed: `json.loads(db.get_setting("demo.scenarios"))["p11"]` gives
 `household_id`, `household_size`, `site_id` and `current_coverage_end`. On a freshly seeded database it is a household
-of 5 people whose coverage ends 2 to 6 days after today (with the current seed: **HH-00037** at **SITE-06 · Almond
-Grove Distribution Point**, coverage ending **today + 6 days**).
+of 5 people whose parcel coverage ends a few days after today (with the current seed: **HH-00037** at **SITE-06 · Almond
+Grove Distribution Point**, parcel coverage ending **today + 4 days**).
 
 1. In the sidebar choose the scenario site (SITE-06). In section 2, find the household (sort by "Household" or use the
-   table search). **Expected:** its coverage ends on `current_coverage_end` (today + 6 days, "Days left" 6), with 32
-   stored days from its last distribution 25 days ago.
+   table search). **Expected:** its coverage ends on `current_coverage_end` (today + 4 days, "Days left" 4), with 30
+   stored parcel days from its last distribution 25 days ago.
 2. In section 3, keep the default window (tomorrow to today + 7 days, "next week"). **Expected:** the household is
    listed as due ("ends before the window's last day", 1 standard parcel, no meals because it registered more than 60
    days ago). At SITE-06 the forecast shows 28 households due, 28 standard parcels, 6 small parcels, 34 parcels in all,
    and 120 ready-to-eat meals (a separate unit).
 3. In section 1, choose the household (the size defaults to 5, the parcel type to standard, the quantity to 1, meals to
-   0). **Expected preview before saving:** parcel coverage 30 days (150 / 5), meal coverage 0, expected coverage
-   30 days, coverage ends **today + 29 days**. Press **Record distribution**.
+   0). **Expected preview before saving:** parcel coverage 30 days (150 / 5), meal coverage 0 (separate), expected
+   coverage 30 days, coverage ends **today + 29 days**. Press **Record distribution** in the staff confirmation form (choose the confirming staff member, tick the box).
 4. **Expected:** a confirmation with the new distribution ID and "30 days of coverage, ending today + 29". In section 2
    the household's coverage end is today + 29 days ("Days left" 29, stored days 30). In section 3 it is no longer in next
    week's forecast: 27 households due and 27 standard parcels (one fewer, the household's parcel), small parcels (6)
@@ -109,10 +111,10 @@ coordinator's confirmation; saving a plan twice for the same site, item and date
 
 ## Tests
 
-`tests/test_p11_food_distribution.py` (28 tests):
+`tests/test_p11_food_distribution.py` (24 tests):
 
 - Parcel coverage and coverage end dates by household size (1 standard parcel: 5 people 30 days, 3 people 50 days,
-  6 people 25 days; 1 small parcel for 2 people 30 days), meals adding days separately, coverage stored at recording.
+  6 people 25 days; 1 small parcel for 2 people 30 days), meal days kept separate from parcel days, coverage stored at recording.
 - Edited assumptions (`person_days.ITM-FP-STD` = 120) change coverage, the coverage end date and the forecast; saving
   assumptions refuses without a coordinator's confirmation, validates values, updates `updated_at`/`updated_by` and audits.
 - Parcels and ready-to-eat meals never summed: forecast summary fields and units, all parcels = standard + small only,
@@ -125,4 +127,4 @@ coordinator's confirmation; saving a plan twice for the same site, item and date
   no stock movements created.
 - Saving a plan writes one `distribution_plans` row per item with correct units, warehouse and households, needs
   confirmation, is audited, and refuses a duplicate or a seeded existing plan and past dates.
-- `app_test(11)` starts without an exception, and recording the walkthrough parcel through the app writes the row.
+- `app_test(11)` starts without an exception; recording the walkthrough parcel through the app needs the confirmation and writes the row; recording without a valid confirming staff member is refused.

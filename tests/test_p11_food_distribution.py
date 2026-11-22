@@ -369,8 +369,10 @@ def test_record_refuses_invalid_and_double_entries(tx: sqlite3.Connection) -> No
     with pytest.raises(ValueError):
         # DSP-0001 is not a dispatch of standard parcels to this site for today.
         p11.record_distribution(tx, distribution_date=TODAY, parcel_quantity=1, recorded_by="FW-01", dispatch_id="DSP-0001", **base)
-    with pytest.raises(ValueError):
+    with pytest.raises(confirm.ConfirmationRequired):
         p11.record_distribution(tx, distribution_date=TODAY, parcel_quantity=1, recorded_by="", **base)
+    with pytest.raises(confirm.ConfirmationRequired):
+        p11.record_distribution(tx, distribution_date=TODAY, parcel_quantity=1, recorded_by="DO-01", **base)
     record(tx, hid, site, 5)
     with pytest.raises(ValueError, match="twice"):
         record(tx, hid, site, 5)
@@ -465,7 +467,8 @@ def test_app_records_the_walkthrough_parcel(app_test, db_path) -> None:  # noqa:
     at.sidebar.selectbox(key="p11_site").set_value(sc["site_id"]).run()
     at.selectbox(key="p11_rec_household").set_value(sc["household_id"]).run()
     assert not at.exception
-    at.button(key="p11_record").click().run()
+    at.checkbox(key="confirm_tick_p11_record").check()
+    next(b for b in at.button if b.label == "Record distribution").click().run()
     assert not at.exception
     assert any("Parcel coverage 30 days" in s.value for s in at.success)
     with db.transaction(db_path) as c:

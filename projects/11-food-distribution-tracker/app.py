@@ -29,7 +29,6 @@ if flash:
     (st.success if kind == "ok" else st.error)(text)
 
 # -- sidebar ------------------------------------------------------------------------
-acting = ui.staff_selector(("field_worker", "coordinator"), key="p11_staff", label="Acting as (recording distributions)")
 sites = p11.food_sites(conn)
 site_names = {s["site_id"]: f"{s['site_id']} · {s['name']}" for s in sites}
 site_id = st.sidebar.selectbox("Distribution site", list(site_names), format_func=lambda s: site_names[s], key="p11_site")
@@ -128,7 +127,13 @@ ui.metric_row(
         ),
     ]
 )
-if st.button("Record distribution", type="primary", key="p11_record"):
+record_summary = (
+    f"Record {qty} parcels ({ITEM_NAMES[item] if qty else 'no parcels'}) and {meals} ready-to-eat meals for **{hid}** "
+    f"(household of {size}) at **{site_names[site_id]}** on **{dist_date}**. Parcel coverage {preview['parcel_days']} days, "
+    f"ending {show_date(preview['parcel_coverage_end'], 'no parcels')}. This feeds the reconciliation in Project 12."
+)
+acting = ui.confirm_action("p11_record", record_summary, roles=p11.RECORD_ROLES, button_label="Record distribution")
+if acting:
     try:
         with db.transaction() as wconn:
             res = p11.record_distribution(
@@ -140,15 +145,15 @@ if st.button("Record distribution", type="primary", key="p11_record"):
                 parcel_item_id=item,
                 parcel_quantity=qty,
                 rte_meal_quantity=meals,
-                recorded_by=acting or "",
+                recorded_by=acting,
                 dispatch_id=dispatch_id,
             )
-    except ValueError as exc:
+    except (ValueError, confirm.ConfirmationRequired) as exc:
         st.error(f"Not recorded: {exc}")
     else:
         finish(
             "ok",
-            f"Recorded {res['distribution_id']} for {hid}: {qty} parcels and {meals} meals. "
+            f"Recorded {res['distribution_id']} for {hid}: {qty} parcels and {meals} meals, confirmed by {acting}. "
             f"Parcel coverage {res['expected_coverage_days']} days, ending {show_date(res['coverage_end'], 'no parcels')}; "
             f"meal coverage {res['meal_days']} days (separate).",
         )

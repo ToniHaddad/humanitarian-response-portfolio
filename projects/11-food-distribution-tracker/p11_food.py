@@ -21,6 +21,7 @@ SMALL_PARCEL = food.SMALL_PARCEL
 RTE_MEAL = "ITM-RTE"
 PARCEL_ITEMS: tuple[str, ...] = (STANDARD_PARCEL, SMALL_PARCEL)
 NEW_ARRIVAL_DAYS = 60  # households registered this recently also get ready-to-eat meals
+RECORD_ROLES: tuple[str, ...] = ("field_worker", "coordinator")
 PLAN_ROLES: tuple[str, ...] = ("coordinator",)
 ASSUMPTION_ROLES: tuple[str, ...] = ("coordinator",)
 
@@ -334,11 +335,10 @@ def record_distribution(
     """Write one distributions row; expected_coverage_days = parcel days with the saved assumptions.
 
     Meal days are returned for display but never stored in or added to the parcel coverage.
-    Call inside db.transaction() (next_id needs the write lock). Routine data entry: no staff confirmation, but the acting staff is recorded and audited.
+    Call inside db.transaction() (next_id needs the write lock). Needs a staff confirmation (recorded_by is the confirming staff member, a field worker or coordinator); audited.
     It never creates dispatches or stock movements (stock is Project 10's ledger).
     """
-    if not recorded_by or conn.execute("SELECT 1 FROM staff WHERE staff_id = ? AND active = 1", (recorded_by,)).fetchone() is None:
-        raise ValueError("Choose the acting staff member before recording.")
+    confirm.require_confirmation(conn, recorded_by, allowed_roles=RECORD_ROLES)
     if site_id not in SITE_CATCHMENT:
         raise ValueError(f"{site_id} is not a food distribution site.")
     hh = conn.execute("SELECT status FROM households WHERE household_id = ?", (household_id,)).fetchone()
