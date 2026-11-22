@@ -24,7 +24,7 @@ Seeded tables `distribution_plans`, `dispatches`, `distributions`, `distribution
 - Parcels only (`ITM-FP-STD` and `ITM-FP-SML` are reconciled separately, never added together). Ready-to-eat meals are a different unit and are not part of this reconciliation.
 - The latest note for a discrepancy decides whether it is resolved.
 - Notes are keyed by site, period and discrepancy key (not by item), so a household flagged for both parcel items shares one note thread.
-- Sign-off needs a coordinator (or admin) to confirm.
+- Saving a note needs a confirming staff member (any active staff; ticked confirmation form, audited), because a resolved note changes what the report lists as unresolved. Sign-off needs a coordinator (or admin) to confirm.
 
 ## Limitations
 - Matching is by IDs only: a distribution row is "unmatched" if it has no dispatch or its dispatch is for another site or item; quantities are not compared line by line.
@@ -45,7 +45,7 @@ Port 8512.
 The page opens on the seeded scenario (`demo.scenarios` -> `p12`), which names the site, item, period and the two flagged records. The period is always the seven days from 12 to 6 days before the demo date, so its dates move with the seed; the parcel figures below are fixed by the seed's content and are the same whatever the date.
 1. Open the page. The site `SITE-03`, the period (read it in the "Period" box) and item `ITM-FP-STD` are already selected. The figures show 100 planned, 100 dispatched, 96 distributed, 3 returned and **1 parcel unaccounted for**. The explanation reads `unaccounted = dispatched - distributed - returned = 100 - 96 - 3 = 1`.
 2. In the discrepancy list see three flags: `unaccounted:ITM-FP-STD`, `duplicate:HH-00042` (household HH-00042 recorded twice, 3 parcels in total) and `unmatched:DST-00581` (household HH-00341, no dispatch recorded). The scenario names the same two households (`duplicate_household_id`, `unmatched_household_id`); the two distribution IDs shown in the "What" column of the table are the ones to read from the page.
-3. Add a resolution note to the duplicate and to the unmatched record and tick "Mark as resolved" for each; leave the unaccounted parcel without a note. **Expected:** the two rows change to "resolved" and "Unresolved now" lists only `unaccounted:ITM-FP-STD`.
+3. Add a resolution note to the duplicate and to the unmatched record, tick "Mark as resolved" for each, tick the confirmation box and press "Save note"; leave the unaccounted parcel without a note. **Expected:** the two rows change to "resolved" and "Unresolved now" lists only `unaccounted:ITM-FP-STD`.
 4. Choose a coordinator or admin in "Confirming staff member", tick the box and press "Approve report". **Expected:** "Report RCN-... approved by ..." (the number is the next free report ID) with a download button.
 5. Download the Markdown. **Expected:** it states the period and the four figures, the formula `100 - 96 - 3 = 1`, each discrepancy with its latest note, and its "Unresolved items" section lists only `unaccounted:ITM-FP-STD`.
 

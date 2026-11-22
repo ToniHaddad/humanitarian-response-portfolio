@@ -197,9 +197,7 @@ def add_note(
     text = (note or "").strip()
     if not text:
         raise ValueError("A resolution note cannot be empty.")
-    staff = conn.execute("SELECT active FROM staff WHERE staff_id = ?", (staff_id,)).fetchone()
-    if staff is None or not staff["active"]:
-        raise ValueError(f"Unknown or inactive staff ID: {staff_id}")
+    confirm.require_confirmation(conn, staff_id)  # any active staff member; marking an item resolved is a recorded decision
     cur = conn.execute(
         """INSERT INTO reconciliation_notes(site_id, period_start, period_end, discrepancy_key, discrepancy_type,
                                             note, resolved, staff_id, at) VALUES (?,?,?,?,?,?,?,?,?)""",

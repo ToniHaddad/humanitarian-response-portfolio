@@ -12,9 +12,12 @@ import p12_reconciliation as rec  # noqa: E402
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from shared import charts, clock, db, ui  # noqa: E402
+from shared import charts, clock, confirm, db, ui  # noqa: E402
 
 ui.page_header(project_number=12)
+
+if "p12_flash" in st.session_state:
+    st.success(st.session_state.pop("p12_flash"))
 
 conn = db.connect()
 scenario = rec.default_scenario(conn)
@@ -24,8 +27,6 @@ site_ids = [s["site_id"] for s in site_rows]
 site_names = {s["site_id"]: s["name"] for s in site_rows}
 item_ids = [i["item_id"] for i in item_rows]
 item_names = {i["item_id"]: i["name"] for i in item_rows}
-
-acting = ui.staff_selector(key="p12_acting")
 
 # -- pickers -----------------------------------------------------------------
 ui.section("Site, period and item")
@@ -90,7 +91,7 @@ for i in item_ids:
             "Distributed": f["distributed"],
             "Returned": f["returned"],
             "Unaccounted": f["unaccounted"],
-            "Not dispatched against plan": f["not_dispatched_against_plan"],
+            "Undispatched vs plan": f["not_dispatched_against_plan"],
         }
     )
 st.caption("All figures are parcels, one row per parcel item.")
@@ -110,37 +111,50 @@ ui.section("Discrepancies", "Households recorded more than once, records without
 if not disc:
     st.success("No discrepancies for this site, period and item.")
 else:
+
+    def short(text: str, n: int = 50) -> str:
+        return text if len(text) <= n else text[: n - 1].rstrip() + "…"
+
     ui.table(
         pd.DataFrame(
             [
                 {
-                    "Key": d["key"],
-                    "Type": d["type"].replace("_", " "),
-                    "What": d["description"],
                     "Status": "resolved" if d["resolved"] else "unresolved",
-                    "Latest note": d["note"] or "",
+                    "Type": d["type"].replace("_", " "),
+                    "Key": d["key"],
+                    "What": short(d["description"]),
+                    "Latest note": short(d["note"] or ""),
                     "By": d["note_staff"] or "",
                 }
                 for d in disc
             ]
         )
     )
-    with st.form("p12_note_form", clear_on_submit=True):
-        st.markdown("**Record a resolution note**")
-        keys = [d["key"] for d in disc]
-        key = st.selectbox("Discrepancy", keys, key="p12_note_key")
-        note = st.text_area("Resolution note", key="p12_note_text")
-        resolved = st.checkbox("Mark as resolved", key="p12_note_resolved")
-        saved = st.form_submit_button("Save note")
-    if saved:
-        chosen = next(d for d in disc if d["key"] == key)
+    with st.expander("Full text of each discrepancy and its latest note"):
+        for d in disc:
+            st.markdown(f"**{d['key']}** ({'resolved' if d['resolved'] else 'unresolved'}): {d['description']}")
+            if d["note"]:
+                st.markdown(f"> {d['note']} ({d['note_staff']}, {d['note_at']})")
+    st.markdown("**Record a resolution note**")
+    keys = [d["key"] for d in disc]
+    key = st.selectbox("Discrepancy", keys, key="p12_note_key")
+    note = st.text_area("Resolution note", key="p12_note_text")
+    resolved = st.checkbox("Mark as resolved", key="p12_note_resolved")
+    chosen = next(d for d in disc if d["key"] == key)
+    noter = ui.confirm_action(
+        "p12_note",
+        f"Save a resolution note for **{key}**, marked **{'resolved' if resolved else 'not resolved'}**. "
+        "The latest note decides whether the item counts as unresolved in the approved report.",
+        button_label="Save note",
+    )
+    if noter:
         try:
             with db.transaction() as wconn:
-                rec.add_note(wconn, site_id, start, end, key, chosen["type"], note, resolved, acting or "")
-            st.success(f"Note saved for {key}.")
+                rec.add_note(wconn, site_id, start, end, key, chosen["type"], note, resolved, noter)
+            st.session_state["p12_flash"] = f"Note saved for {key}, confirmed by {noter}."
             st.rerun()
-        except ValueError as exc:
-            st.error(str(exc))
+        except (ValueError, confirm.ConfirmationRequired) as exc:
+            st.error(f"Nothing was saved. {exc}")
 
 # -- approval ----------------------------------------------------------------
 ui.section("Approve and export", "Sign-off needs a coordinator. The Markdown lists every unresolved item.")

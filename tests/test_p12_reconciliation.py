@@ -230,8 +230,12 @@ def test_note_validation(conn: sqlite3.Connection, scenario: dict) -> None:
     s, a, b = scenario["site_id"], scenario["period_start"], scenario["period_end"]
     with pytest.raises(ValueError):
         rec.add_note(conn, s, a, b, "unaccounted:x", "unaccounted", "   ", True, "FW-01")
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfirmationRequired):
         rec.add_note(conn, s, a, b, "unaccounted:x", "unaccounted", "text", True, "NOPE-99")
+    for nobody in (None, "", "  "):
+        with pytest.raises(ConfirmationRequired):
+            rec.add_note(conn, s, a, b, "unaccounted:x", "unaccounted", "text", True, nobody)  # type: ignore[arg-type]
+    assert conn.execute("SELECT COUNT(*) FROM reconciliation_notes WHERE discrepancy_key = 'unaccounted:x'").fetchone()[0] == 0
     with pytest.raises(ValueError):
         rec.add_note(conn, s, a, b, "k", "bogus", "text", True, "FW-01")
 
@@ -300,6 +304,14 @@ def test_app_starts_without_exception(app_test) -> None:  # noqa: ANN001
 
 def test_app_walkthrough_notes_and_approval(app_test, db_path, scenario: dict) -> None:  # noqa: ANN001
     """README walkthrough: resolve the duplicate and the unmatched record, approve, check the exported Markdown."""
+
+    def note_count(path) -> int:  # noqa: ANN001
+        c = db.connect(path)
+        try:
+            return c.execute("SELECT COUNT(*) FROM reconciliation_notes").fetchone()[0]
+        finally:
+            c.close()
+
     at = app_test(12).run()
     assert not at.exception
     assert [m.value for m in at.metric] == ["100", "100", "96", "3", "1"]
@@ -311,6 +323,11 @@ def test_app_walkthrough_notes_and_approval(app_test, db_path, scenario: dict) -
         at.selectbox(key="p12_note_key").set_value(key)
         at.text_area(key="p12_note_text").set_value(f"checked {key}")
         at.checkbox(key="p12_note_resolved").check()
+        if key == keys[1]:  # without the tick box nothing is saved
+            notes_before = note_count(db_path)
+            next(b for b in at.button if b.label == "Save note").click().run()
+            assert not at.exception and note_count(db_path) == notes_before
+            at.checkbox(key="confirm_tick_p12_note").check()
         next(b for b in at.button if b.label == "Save note").click().run()
         assert not at.exception
     assert any("Unresolved now: unaccounted:ITM-FP-STD" in m.value for m in at.markdown)
