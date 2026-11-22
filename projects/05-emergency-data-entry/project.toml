@@ -4,6 +4,6 @@ number = 5
 slug = "emergency-data-entry"
 title = "Field note to intake form"
 group = "B"
-status = "in_progress"
+status = "built"
 user = "Data entry staff"
 task = "Turn a pasted Arabic or English field note into a draft intake form, fix flagged gaps, and save it."
