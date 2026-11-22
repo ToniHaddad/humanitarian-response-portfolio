@@ -2,3 +2,4 @@
 *.png binary
 *.joblib binary
 *.db binary
+*.sh text eol=lf

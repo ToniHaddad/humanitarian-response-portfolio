@@ -35,6 +35,7 @@ from shared import alerts, clock, config, db, ports, simulator
 
 BACKUP_ENV_VAR = "PORTFOLIO_BACKUP_DIR"
 PROBE_HOST_VAR = "PORTFOLIO_PROBE_HOST"
+PROBE_API_HOST_VAR = "PORTFOLIO_PROBE_API_HOST"  # optional: the API on another host than the homepage (Docker)
 START_JOBS: tuple[str, ...] = ("position_simulator", "alert_evaluation")  # run once when the scheduler starts
 BACKUPS_TO_KEEP = 5
 OVERDUE_FACTOR = 2.0  # a job is overdue with no success within 2 x its interval
@@ -199,9 +200,10 @@ def probe(url: str, timeout: float = 2.0) -> bool:
 def probe_targets() -> dict[str, tuple[str, str]]:
     """service -> (health URL, description). Host from PORTFOLIO_PROBE_HOST (default localhost)."""
     host = os.environ.get(PROBE_HOST_VAR, "").strip() or "localhost"
+    api_host = os.environ.get(PROBE_API_HOST_VAR, "").strip() or host
     return {
         "homepage": (f"{ports.homepage_url(host)}/_stcore/health", "Streamlit portfolio homepage"),
-        "api": (f"{ports.api_url(host)}/openapi.json", "FastAPI operations API"),
+        "api": (f"{ports.api_url(api_host)}/openapi.json", "FastAPI operations API"),
     }
 
 
