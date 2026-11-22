@@ -45,19 +45,31 @@ is_draft = b["status"] == "draft"
 
 # -- figures and their sources -------------------------------------------------
 ui.section("2. Figures and their source records", "Units are shown on every figure; parcels, meals and kits are never added together.")
+
+
+def _id_list(text: str) -> list[str]:
+    return [i for i in text.removeprefix("v_stock_on_hand: ").split(",") if i.strip()]
+
+
 src = pd.DataFrame(
     [
         {
             "Figure": s["figure_key"],
             "Value": int(s["figure_value"]),
             "Unit": s["unit"],
-            "Source table": s["source_table"],
-            "Source records": s["source_record_ids"],
+            "Table": s["source_table"],
+            "Records (count)": len(_id_list(s["source_record_ids"])),
+            "First records": ", ".join(_id_list(s["source_record_ids"])[:2]) or "none",
         }
         for s in b["sources"]
     ]
 )
 ui.table(src)
+with st.expander("All source record IDs for a figure"):
+    pick = st.selectbox("Figure", [s["figure_key"] for s in b["sources"]], key="p18_src_pick")
+    chosen = next(s for s in b["sources"] if s["figure_key"] == pick)
+    st.caption(f"Table `{chosen['source_table']}`, {len(_id_list(chosen['source_record_ids']))} record(s)")
+    st.code(chosen["source_record_ids"] or "no records that day", language=None)
 
 # -- conflicts ------------------------------------------------------------------
 ui.section("3. Conflicting totals")

@@ -22,7 +22,7 @@ Tables `field_updates`, `calls`, `complaints`, `service_requests`, `v_stock_on_h
 - One comparison rule and exact equality, with no tolerance.
 - Conflict decisions: "records are right" (resolved), "field report is right, records need correcting" and "cannot decide" (both listed as unresolved items in the export).
 - Text edits change the Markdown body only; figures and sources stay as calculated.
-- One page: the draft body is the figures table (11 rows, source IDs cut to six per figure, the rest in the appendix of the export), the day's field updates and a short notes line, about 30 lines on the seeded day. The list of field updates is not capped, so a day with very many updates runs longer than a page.
+- One page: the draft body is the figures table (11 rows, source IDs cut to six per figure, the rest in the appendix of the export), at most the five newest field updates (each cut to 160 characters, then a line "and N more in the source records") and a short notes line, about 30 lines whatever the day. Every figure stays linked to all its records in `briefing_sources` and the appendix. The page's figures table shows the first two record IDs and the count; a selector below it shows all IDs of one figure. A test builds a day with 60 field updates and checks the body stays within 50 lines and 4000 characters.
 - No extra libraries beyond `requirements.txt`.
 
 ## Launch

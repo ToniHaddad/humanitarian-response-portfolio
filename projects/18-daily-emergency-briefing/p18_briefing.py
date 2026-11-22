@@ -30,6 +30,8 @@ DECISIONS = {
 RESOLVED_DECISIONS = ("use_records",)
 COMPARABLE_KEY = "households_reached"
 LIST_LIMIT = 6  # IDs shown inline in the briefing body; the appendix lists them all
+UPDATE_LIMIT = 5  # most recent field updates listed in the body; the rest stay in field_updates
+UPDATE_TEXT_CHARS = 160  # longer update text is cut in the body (the full text stays in the record)
 
 
 class BriefingError(Exception):
@@ -152,9 +154,13 @@ def render_body(day: str, figures: list[dict[str, Any]], updates: list[dict[str,
         "",
     ]
     if updates:
-        for u in updates:
+        shown = sorted(updates, key=lambda u: u["reported_at"], reverse=True)[:UPDATE_LIMIT]  # newest first
+        for u in shown:
             fig = f" [{u['figure_key']} = {int(u['figure_value'])}]" if u["figure_key"] and u["figure_value"] is not None else ""
-            lines.append(f"- {u['update_id']} ({u['team']}, {u['reported_at'][11:16]}): {u['text']}{fig}")
+            text = u["text"] if len(u["text"]) <= UPDATE_TEXT_CHARS else u["text"][: UPDATE_TEXT_CHARS - 3].rstrip() + "..."
+            lines.append(f"- {u['update_id']} ({u['team']}, {u['reported_at'][11:16]}): {text}{fig}")
+        if len(updates) > len(shown):
+            lines.append(f"- ... and {len(updates) - len(shown)} more in the source records (`field_updates`).")
     else:
         lines.append("- No field updates for this day.")
     lines += ["", "## Coordinator notes", ""]

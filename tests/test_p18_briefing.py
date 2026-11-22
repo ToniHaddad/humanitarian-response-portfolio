@@ -197,3 +197,25 @@ def test_app_coordinator_edits_text_before_approval(app_test, conn: sqlite3.Conn
     [b for b in at.button if b.label == "Approve briefing"][0].click().run()
     assert not at.exception
     assert "Checked by the coordinator." in brf.export_markdown(conn, bid)
+
+
+def test_day_with_many_field_updates_still_fits_one_page(conn: sqlite3.Connection, scenario: dict) -> None:
+    day = scenario["conflict_date"]
+    with conn:
+        for n in range(60):
+            conn.execute(
+                "INSERT INTO field_updates(update_id, reported_at, area_id, site_id, team, text, figure_key, figure_value) VALUES (?,?,?,?,?,?,?,?)",
+                (f"FU-9{n:03d}", f"{day}T{8 + n // 6:02d}:{(n % 6) * 10:02d}:00", None, None, "Team X", "Long field update text. " * 30, None, None),
+            )
+    total = len(brf.field_updates_for(conn, day))
+    assert total >= 60
+    bid = _draft(conn, day)
+    b = brf.get_briefing(conn, bid)
+    body = b["content_md"]
+    assert len(body.splitlines()) <= 50 and len(body) <= 4000
+    assert body.count("- FU-") == brf.UPDATE_LIMIT
+    assert f"and {total - brf.UPDATE_LIMIT} more in the source records" in body
+    # Every figure is still linked to all its records.
+    for s in b["sources"]:
+        if s["figure_key"] == "calls_received":
+            assert s["figure_value"] == len(s["source_record_ids"].split(",")) if s["source_record_ids"] else s["figure_value"] == 0
