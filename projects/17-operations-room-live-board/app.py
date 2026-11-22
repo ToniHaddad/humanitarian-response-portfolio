@@ -42,8 +42,8 @@ def position_map(positions, areas):  # noqa: ANN001, ANN202
             trace.marker.size = 26 if stale else 18
             trace.marker.symbol = "x" if stale else "circle"
             trace.marker.line = {"width": 4 if stale else 1, "color": color if stale else "white"}
-            trace.textfont = {"size": 20, "color": color}
-    fig.update_xaxes(range=[0, 100], constrain="domain")
+            trace.textfont = {"size": 17, "color": color}
+    fig.update_xaxes(range=[-8, 104], constrain="domain")
     fig.update_yaxes(scaleanchor=None, constrain="domain")
     fig.update_layout(
         font={"size": 18}, margin={"l": 50, "r": 10, "t": 40, "b": 45}, legend={"orientation": "h", "y": 1.08, "x": 0, "font": {"size": 18}}
