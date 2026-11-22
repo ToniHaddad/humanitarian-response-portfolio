@@ -1,0 +1,117 @@
+"""Project 20 page helpers: tables for the Streamlit front end of the platform.
+
+The platform logic lives in shared/ (alerts, scheduler, simulator, auth, api) so
+Projects 14 and 17 and server mode use the same code. This module only shapes
+what the page shows.
+"""
+
+from __future__ import annotations
+
+import socket
+import sqlite3
+from contextlib import closing
+from typing import Any
+
+import pandas as pd
+
+from shared import alerts, db, ports, scheduler, simulator
+
+STATUS_FILTERS: dict[str, tuple[str, ...]] = {
+    "Active (open and acknowledged)": ("open", "acknowledged"),
+    "Open": ("open",),
+    "Acknowledged": ("acknowledged",),
+    "Resolved": ("resolved",),
+    "All": ("open", "acknowledged", "resolved"),
+}
+
+
+def read() -> closing[sqlite3.Connection]:
+    """A plain read connection (no write lock), closed when the block ends."""
+    return closing(db.connect())
+
+
+def api_reachable(host: str = "localhost", port: int = ports.API_PORT, timeout: float = 0.3) -> bool:
+    """Quick local check whether the API port answers (the page works either way)."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def alert_counts(conn: sqlite3.Connection) -> dict[str, int]:
+    rows = conn.execute("SELECT status, COUNT(*) FROM alerts GROUP BY status").fetchall()
+    out = {"open": 0, "acknowledged": 0, "resolved": 0}
+    out.update({r[0]: int(r[1]) for r in rows})
+    return out
+
+
+def alerts_frame(conn: sqlite3.Connection, statuses: tuple[str, ...]) -> pd.DataFrame:
+    rows = [a for a in alerts.list_alerts(conn, None, 1000) if a["status"] in statuses]
+    cols = ["alert_id", "status", "severity", "rule_name", "entity_ref", "observed_value", "threshold", "message", "fired_at"]
+    cols += ["acknowledged_by", "acknowledged_at", "resolved_at"]
+    return pd.DataFrame(rows, columns=cols)
+
+
+def open_alert_options(conn: sqlite3.Connection) -> dict[int, str]:
+    return {a["alert_id"]: f"#{a['alert_id']} · {a['entity_ref']} · {a['message']}" for a in alerts.list_alerts(conn, "open", 1000)}
+
+
+def rules_frame(conn: sqlite3.Connection) -> pd.DataFrame:
+    df = pd.DataFrame(alerts.list_rules(conn))
+    df["enabled"] = df["enabled"].astype(bool)
+    return df[["rule_id", "name", "rule_type", "threshold", "enabled", "severity", "description"]]
+
+
+def health(conn: sqlite3.Connection) -> tuple[pd.DataFrame, pd.DataFrame, bool]:
+    report = scheduler.health_report(conn)
+    services = pd.DataFrame(report["services"])[["service_name", "status", "last_seen_at", "minutes_since_seen", "silent", "detail"]]
+    jobs = pd.DataFrame(report["jobs"])[
+        [
+            "job_name",
+            "enabled",
+            "interval_seconds",
+            "last_success_at",
+            "minutes_since_success",
+            "overdue",
+            "last_run_status",
+            "last_run_trigger",
+            "last_run_at",
+            "last_run_detail",
+        ]
+    ]
+    return services, jobs, bool(report["healthy"])
+
+
+def jobs_list(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    return scheduler.health_report(conn)["jobs"]
+
+
+def positions_frame(conn: sqlite3.Connection) -> pd.DataFrame:
+    df = pd.DataFrame(simulator.vehicle_positions(conn))
+    return df[
+        ["vehicle_id", "simulated", "stale", "minutes_since_report", "reported_at", "x_km", "y_km", "speed_kmh", "source", "convoy_id"]
+    ]
+
+
+def recent_runs(conn: sqlite3.Connection, limit: int = 15) -> pd.DataFrame:
+    return db.query_df(
+        "SELECT job_run_id, job_name, trigger, status, started_at, finished_at, detail FROM job_runs ORDER BY job_run_id DESC LIMIT ?",
+        (limit,),
+        conn,
+    )
+
+
+def audit_frame(conn: sqlite3.Connection, channel: str | None = None, limit: int = 100) -> pd.DataFrame:
+    sql = "SELECT audit_id, at, actor_id, actor_role, channel, action, entity_table, entity_id, before_json, after_json, reason FROM audit_log"
+    params: list[Any] = []
+    if channel:
+        sql += " WHERE channel = ?"
+        params.append(channel)
+    sql += " ORDER BY audit_id DESC LIMIT ?"
+    params.append(limit)
+    return db.query_df(sql, params, conn)
+
+
+def audit_channels(conn: sqlite3.Connection) -> list[str]:
+    return [r[0] for r in conn.execute("SELECT DISTINCT channel FROM audit_log ORDER BY channel")]
