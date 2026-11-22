@@ -10,7 +10,7 @@ for p in (str(ROOT), str(HERE)):
 import p20_ops as p20  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from shared import alerts, auth, clock, db, fleet, ports, scheduler, simulator, ui  # noqa: E402
+from shared import alerts, auth, clock, confirm, db, fleet, ports, scheduler, simulator, ui  # noqa: E402
 
 ui.page_header(project_number=20)
 
@@ -73,10 +73,21 @@ with tab_alerts:
         rule = rules[rule_id]
         new_threshold = st.number_input("Threshold", min_value=0.0, value=float(rule["threshold"]), step=1.0, key=f"p20_thr_{rule_id}")
         new_enabled = st.checkbox("Enabled", value=bool(rule["enabled"]), key=f"p20_en_{rule_id}")
-        if st.button("Save rule", disabled=not allowed("rules"), help=needs("rules")):
-            with db.transaction() as conn:
-                alerts.update_rule(conn, rule_id, str(staff_id), threshold=new_threshold, enabled=new_enabled, channel=APP_CHANNEL)
-            done(f"{rule_id} saved: threshold {new_threshold:g}, {'enabled' if new_enabled else 'disabled'}.")
+        confirmed_rule = ui.confirm_action(
+            "p20_rule",
+            f"Save **{rule_id} · {rule['name']}**: threshold {rule['threshold']:g} to {new_threshold:g}, "
+            f"{'enabled' if new_enabled else 'switched off'}?",
+            roles=auth.ROLES["rules"],
+            button_label="Save rule",
+            default_staff=staff_id,
+        )
+        if confirmed_rule:
+            try:
+                with db.transaction() as conn:
+                    p20.save_rule(conn, rule_id, confirmed_rule, threshold=new_threshold, enabled=new_enabled, channel=APP_CHANNEL)
+                done(f"{rule_id} saved by {confirmed_rule}: threshold {new_threshold:g}, {'enabled' if new_enabled else 'disabled'}.")
+            except (ValueError, LookupError, confirm.ConfirmationRequired) as exc:
+                st.error(str(exc))
 
     ui.section("Alert history")
     choice = st.selectbox("Show", list(p20.STATUS_FILTERS), key="p20_status")
@@ -133,11 +144,21 @@ with tab_jobs:
         limit = fleet.stale_limit_minutes(conn)
     st.markdown("Simulator: " + (ui.badge("RUNNING", "ok") if sim_on else ui.badge("STOPPED", "warn")), unsafe_allow_html=True)
     s1, s2 = st.columns(2)
-    label = "Stop the simulator" if sim_on else "Start the simulator"
-    if s1.button(label, disabled=not allowed("simulator"), help=needs("simulator")):
-        with db.transaction() as conn:
-            simulator.set_enabled(conn, not sim_on, str(staff_id), channel=APP_CHANNEL)
-        done(f"Position simulator {'stopped' if sim_on else 'started'}.")
+    with s1:
+        confirmed_sim = ui.confirm_action(
+            "p20_sim",
+            f"{'Stop' if sim_on else 'Start'} the position simulator?",
+            roles=auth.ROLES["simulator"],
+            button_label="Stop the simulator" if sim_on else "Start the simulator",
+            default_staff=staff_id,
+        )
+        if confirmed_sim:
+            try:
+                with db.transaction() as conn:
+                    p20.switch_simulator(conn, not sim_on, confirmed_sim, channel=APP_CHANNEL)
+                done(f"Position simulator {'stopped' if sim_on else 'started'} by {confirmed_sim}.")
+            except confirm.ConfirmationRequired as exc:
+                st.error(str(exc))
     with s2.form("p20_stale_form", border=False):
         minutes = st.number_input("Stale-position limit (minutes)", min_value=1.0, max_value=1440.0, value=float(limit), step=1.0)
         if st.form_submit_button("Save limit", disabled=not allowed("settings"), help=needs("settings")):

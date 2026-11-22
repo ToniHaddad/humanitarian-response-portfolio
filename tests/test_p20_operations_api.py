@@ -682,3 +682,61 @@ def test_app_health_tab_lists_every_service_and_job(app_test) -> None:  # noqa: 
     jobs = next(f for f in frames if "last_success_at" in f.columns and "job_name" in f.columns)
     assert {"api", "homepage", "position_simulator", "scheduler"} <= set(services["service_name"])
     assert set(jobs["job_name"]) == {"pipeline_ingest", "alert_evaluation", "position_simulator", "db_backup"}
+
+
+def _p20_ops():
+    folder = next(Path(__file__).resolve().parents[1].glob("projects/20-*"))
+    if str(folder) not in sys.path:
+        sys.path.insert(0, str(folder))
+    import p20_ops
+
+    return p20_ops
+
+
+def test_save_rule_and_simulator_switch_are_refused_without_confirmation(conn: sqlite3.Connection) -> None:
+    p20_ops = _p20_ops()
+    before = rule(conn, "RULE-STOCK")["threshold"]
+    with pytest.raises(confirm.ConfirmationRequired):
+        p20_ops.save_rule(conn, "RULE-STOCK", None, threshold=before + 5, enabled=True)
+    with pytest.raises(confirm.ConfirmationRequired):
+        p20_ops.save_rule(conn, "RULE-STOCK", "FW-01", threshold=before + 5, enabled=True)  # field worker may not confirm
+    assert rule(conn, "RULE-STOCK")["threshold"] == before
+    was_on = simulator.is_enabled(conn)
+    with pytest.raises(confirm.ConfirmationRequired):
+        p20_ops.switch_simulator(conn, not was_on, None)
+    with pytest.raises(confirm.ConfirmationRequired):
+        p20_ops.switch_simulator(conn, not was_on, "")
+    assert simulator.is_enabled(conn) is was_on
+    # With a coordinator it works and is audited on the page's channel.
+    p20_ops.save_rule(conn, "RULE-STOCK", "CRD-01", threshold=before + 5, enabled=True)
+    p20_ops.switch_simulator(conn, not was_on, "CRD-01")
+    assert rule(conn, "RULE-STOCK")["threshold"] == before + 5
+    assert simulator.is_enabled(conn) is (not was_on)
+    actors = {r[0] for r in conn.execute("SELECT actor_id FROM audit_log WHERE channel = 'app:20' AND action IN ('update')")}
+    assert "CRD-01" in actors
+
+
+def test_app_save_rule_and_simulator_need_the_tick_box(app_test, db_path: Path) -> None:  # noqa: ANN001
+    at = app_test(20).run()
+    with db.transaction(db_path) as conn:
+        before = rule(conn, "RULE-STOCK")["threshold"]
+        was_on = simulator.is_enabled(conn)
+    at.selectbox(key="p20_rule").set_value("RULE-STOCK")
+    at = at.run()
+    at.number_input(key="p20_thr_RULE-STOCK").set_value(before + 7)
+    at = next(b for b in at.button if b.label == "Save rule").click().run()  # not ticked
+    sim_label = "Stop the simulator" if was_on else "Start the simulator"
+    at = next(b for b in at.button if b.label == sim_label).click().run()  # not ticked
+    with db.transaction(db_path) as conn:
+        assert rule(conn, "RULE-STOCK")["threshold"] == before
+        assert simulator.is_enabled(conn) is was_on
+    at.selectbox(key="confirm_staff_p20_rule").set_value("CRD-01")
+    at.checkbox(key="confirm_tick_p20_rule").check()
+    at = next(b for b in at.button if b.label == "Save rule").click().run()
+    assert not at.exception
+    at.checkbox(key="confirm_tick_p20_sim").check()
+    at = next(b for b in at.button if b.label == sim_label).click().run()
+    assert not at.exception
+    with db.transaction(db_path) as conn:
+        assert rule(conn, "RULE-STOCK")["threshold"] == before + 7
+        assert simulator.is_enabled(conn) is (not was_on)

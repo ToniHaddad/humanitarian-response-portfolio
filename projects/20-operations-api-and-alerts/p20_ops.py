@@ -14,7 +14,7 @@ from typing import Any
 
 import pandas as pd
 
-from shared import alerts, db, ports, scheduler, simulator
+from shared import alerts, auth, confirm, db, ports, scheduler, simulator
 
 STATUS_FILTERS: dict[str, tuple[str, ...]] = {
     "Active (open and acknowledged)": ("open", "acknowledged"),
@@ -23,6 +23,29 @@ STATUS_FILTERS: dict[str, tuple[str, ...]] = {
     "Resolved": ("resolved",),
     "All": ("open", "acknowledged", "resolved"),
 }
+
+
+def save_rule(
+    conn: sqlite3.Connection,
+    rule_id: str,
+    confirmed_by: str | None,
+    *,
+    threshold: float,
+    enabled: bool,
+    channel: str = "app:20",
+) -> dict[str, Any]:
+    """The page's rule change: needs a confirming coordinator (or admin), then the shared audited update.
+
+    `alerts.update_rule` stays free of confirmation because the API and scripts call it directly.
+    """
+    staff = confirm.require_confirmation(conn, confirmed_by, auth.ROLES["rules"])
+    return alerts.update_rule(conn, rule_id, staff, threshold=threshold, enabled=enabled, channel=channel)
+
+
+def switch_simulator(conn: sqlite3.Connection, enabled: bool, confirmed_by: str | None, channel: str = "app:20") -> None:
+    """The page's simulator switch: needs a confirming coordinator (or admin), then the shared audited switch."""
+    staff = confirm.require_confirmation(conn, confirmed_by, auth.ROLES["simulator"])
+    simulator.set_enabled(conn, enabled, staff, channel=channel)
 
 
 def read() -> closing[sqlite3.Connection]:
