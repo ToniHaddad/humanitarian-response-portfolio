@@ -1,5 +1,5 @@
 [project]
-name = "humanitarian-response-ai-portfolio"
+name = "humanitarian-response-portfolio"
 version = "0.1.0"
 description = "Twenty demo tools for emergency response teams over one shared SQLite database of fictional data."
 requires-python = ">=3.12"

@@ -1,1 +1,1 @@
-"""Shared code for the humanitarian response AI portfolio."""
+"""Shared code for the humanitarian response portfolio."""
