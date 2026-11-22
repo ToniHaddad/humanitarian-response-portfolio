@@ -113,7 +113,7 @@ On macOS or Linux use `.venv/bin/python` in place of `.\.venv\Scripts\python.exe
 
 **Local demo mode** is the default: one command, no network, no account, no paid key. Background features still work locally: a built-in position simulator, scheduled runs and alert evaluation, each with a "run now" control in Project 20.
 
-**Server mode** runs the whole portfolio continuously on one always-on Linux machine with Docker Compose: the apps, the API, the scheduler and scheduled backups, reachable only over a private network, with a staff login on every page that changes data. Setup, backups and restore are in [`DEPLOYMENT.md`](DEPLOYMENT.md). It is written and statically checked but has not been run under Docker (see Limitations).
+**Server mode** runs the whole portfolio continuously on one always-on Linux machine with Docker Compose: the apps, the API, the scheduler and scheduled backups, reachable only over a private network, with a staff login on every page that changes data. Setup, backups and restore are in [`DEPLOYMENT.md`](DEPLOYMENT.md). It was built and run with Docker Compose on a GitHub Actions Linux runner, where a smoke script checks every service; it has not been run on a long-lived server or reached over a private network (see Limitations).
 
 ## Architecture
 
@@ -165,7 +165,7 @@ Python 3.12, Streamlit, pandas, SQLite, scikit-learn, FastAPI, APScheduler and P
 
 ## Limitations
 
-All data is fictional and generated, so figures illustrate how a tool behaves and are not evidence about any real operation. The database is one local SQLite file: fine for a demo, not a design for many simultaneous writers. Server mode is written and statically tested but has not been run under Docker. The server login is one shared staff account, not an account per person. Walkthroughs were verified through the domain functions and Streamlit's test harness. Details are listed in `PROGRESS.md` and `DEPLOYMENT.md`.
+All data is fictional and generated, so figures illustrate how a tool behaves and are not evidence about any real operation. The database is one local SQLite file: fine for a demo, not a design for many simultaneous writers. Server mode has been built and run under Docker only on a CI runner, not on a long-lived server. The server login is one shared staff account, not an account per person. Walkthroughs were verified through the domain functions and Streamlit's test harness. Details are listed in `PROGRESS.md` and `DEPLOYMENT.md`.
 
 ## For contributors
 

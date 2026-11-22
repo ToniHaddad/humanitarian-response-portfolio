@@ -18,7 +18,7 @@ Last updated: 2026-11-22 (local)
 |---|--------|-------|------------|---------------------|------------|-------|
 | 01 | call-center-request-dashboard | yes | yes (27) | yes (group review): intake to closure through the domain functions on a fresh seed | yes | Suggestion comes from `shared.classifier`, blank below 0.6; close needs staff confirmation. |
 | 02 | call-center-calls-and-complaints | yes | yes (15) | yes (group review): calls 300 -> 302, complaints 28 -> 29, one complaint with 2 calls | yes | Every call type is logged; a call links to a request through `calls.request_id`; closing a complaint needs confirmation. |
-| 03 | call-note-classifier-lab | yes | yes | yes (group review): 383 train / 217 test, accuracy 76.5%, 43.8% left blank | yes | Per category and language, confusion matrix, misclassified list; saves nothing. |
+| 03 | call-note-classifier-lab | yes | yes | yes (group review): 383 train / 217 test, accuracy 90.8%, 23.0% left blank | yes | Per category and language, confusion matrix, misclassified list; saves nothing. |
 | 04 | beneficiary-referral-tracker | yes | yes | yes (group review): need matched to a provider, referral refused without confirmation, then approved and received | yes | Explanation per match; approval and outcome need staff confirmation. |
 | 05 | emergency-data-entry | yes | yes (48) | yes (group review): two drafts saved as intake records | yes | |
 | 06 | family-record-checker | yes | yes (27) | yes (group review): merge recorded with 5 records moved | yes | README steps use IDs and `demo.scenarios`, not names. |
@@ -40,8 +40,8 @@ Last updated: 2026-11-22 (local)
 Tests-pass cells for 17 to 20 were confirmed by running each project's test file; the screenshot files exist in each project folder.
 
 ## Not verified
-- Server mode has never been run under Docker: the image was not built, `docker compose up` was not executed, no container health check ran. Only static checks (`tests/test_server_mode.py`) and the backup, restore and health-check scripts on a temporary database were run.
-- Docker-specific behavior is unconfirmed: that the pinned requirements install on `python:3.12-slim`, volume permissions for the non-root user, the port range and the arithmetic in the backup health check, and the start-up time of the apps container.
+- Server mode was built and run with Docker Compose on a GitHub Actions Linux runner (all services healthy, smoke checks passing). It has not been run on a long-lived server, reached over a private network from another machine, or taken through a host reboot.
+- In server mode the Streamlit apps were checked on their health endpoints only; nobody logged in through a browser. The restore was into a scratch path, not over a live database.
 - The GitHub Actions workflow passes on Linux (style check and tests). The README's macOS and Linux commands were not typed by hand.
 - Every "Try this demo" walkthrough was followed on two differently dated copies of the demo data, through the domain functions and Streamlit's test harness, not by clicking in a browser. Screenshots are real captures, mostly of the first screen.
 - The server login is one shared staff username and password and one shared API token, not one account per person. The login gate is covered by tests but was not tried on a running server.
