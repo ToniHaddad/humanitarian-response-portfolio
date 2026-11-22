@@ -1769,6 +1769,20 @@ class Seeder:
                     weight_kg=round(p["planned_quantity"] * self.item_weight[p["item_id"]], 1),
                 )
             )
+        # Ready-to-eat meals dispatched with CNV-002 to SITE-01 ride on VEH-01 too, so the load plan matches the dispatches.
+        for (rte_qty,) in self.c.execute(
+            "SELECT quantity FROM dispatches WHERE convoy_id = 'CNV-002' AND site_id = 'SITE-01' AND item_id = 'ITM-RTE' ORDER BY dispatch_id"
+        ):
+            loads.append(
+                dict(
+                    convoy_id="CNV-002",
+                    vehicle_id="VEH-01",
+                    site_id="SITE-01",
+                    item_id="ITM-RTE",
+                    quantity=rte_qty,
+                    weight_kg=round(rte_qty * self.item_weight["ITM-RTE"], 1),
+                )
+            )
         for site, item, qty, veh in (
             ("SITE-09", "ITM-FP-STD", 40, "VEH-03"),
             ("SITE-09", "ITM-HYG", 30, "VEH-03"),
