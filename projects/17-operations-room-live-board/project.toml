@@ -4,6 +4,6 @@ number = 17
 slug = "operations-room-live-board"
 title = "Operations room live board"
 group = "E"
-status = "in_progress"
+status = "built"
 user = "Operations room staff"
 task = "Watch convoys, requests, advisories, stock alerts and today's distributions on a self-refreshing wall display."
