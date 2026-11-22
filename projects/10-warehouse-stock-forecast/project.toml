@@ -4,6 +4,6 @@ number = 10
 slug = "warehouse-stock-forecast"
 title = "Warehouse stock forecast"
 group = "C"
-status = "in_progress"
+status = "built"
 user = "Warehouse and supply officers"
 task = "Track stock by warehouse and item, estimate stockout dates, and get replenishment quantities."
