@@ -104,7 +104,7 @@ fig.update_traces(
     },
     selector={"mode": "markers+text"},
 )
-fig.update_yaxes(range=[0, 110])  # headroom so a label above a point near the top edge is not clipped
+fig.update_yaxes(range=[0, 110], scaleanchor=None)  # headroom so a label above a point near the top edge is not clipped
 st.plotly_chart(fig, width="stretch")
 
 ui.section("Area table", "Click a column heading to sort.")
