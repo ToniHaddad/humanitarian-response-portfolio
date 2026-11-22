@@ -296,3 +296,45 @@ def test_app_starts_without_exception(app_test) -> None:  # noqa: ANN001
     at = app_test(12).run()
     assert not at.exception
     assert at.metric[4].value == "1"
+
+
+def test_app_walkthrough_notes_and_approval(app_test, db_path, scenario: dict) -> None:  # noqa: ANN001
+    """README walkthrough: resolve the duplicate and the unmatched record, approve, check the exported Markdown."""
+    at = app_test(12).run()
+    assert not at.exception
+    assert [m.value for m in at.metric] == ["100", "100", "96", "3", "1"]
+    assert any("100 - 96 - 3 = 1" in i.value for i in at.info)
+    keys = list(at.selectbox(key="p12_note_key").options)
+    assert keys[0] == "unaccounted:ITM-FP-STD"
+    assert f"duplicate:{scenario['duplicate_household_id']}" in keys
+    for key in keys[1:]:
+        at.selectbox(key="p12_note_key").set_value(key)
+        at.text_area(key="p12_note_text").set_value(f"checked {key}")
+        at.checkbox(key="p12_note_resolved").check()
+        next(b for b in at.button if b.label == "Save note").click().run()
+        assert not at.exception
+    assert any("Unresolved now: unaccounted:ITM-FP-STD" in m.value for m in at.markdown)
+
+    # No tick, no report; then tick and approve.
+    def report_count() -> int:
+        c = db.connect(db_path)
+        try:
+            return c.execute("SELECT COUNT(*) FROM reconciliation_reports").fetchone()[0]
+        finally:
+            c.close()
+
+    before = report_count()
+    next(b for b in at.button if b.label == "Approve report").click().run()
+    assert report_count() == before
+    at.checkbox(key="confirm_tick_p12_approve").check()
+    next(b for b in at.button if b.label == "Approve report").click().run()
+    assert not at.exception and any("approved by" in s.value for s in at.success)
+    assert report_count() == before + 1
+    c = db.connect(db_path)
+    try:
+        md = c.execute("SELECT markdown FROM reconciliation_reports ORDER BY report_id DESC LIMIT 1").fetchone()[0]
+    finally:
+        c.close()
+    assert "100 - 96 - 3 = 1" in md
+    unresolved = md.split("## Unresolved items")[1]
+    assert "unaccounted:ITM-FP-STD" in unresolved and "duplicate:" not in unresolved and "unmatched:" not in unresolved
