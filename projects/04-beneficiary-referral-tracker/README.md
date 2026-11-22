@@ -61,16 +61,16 @@ Port 8504. Use your own database copy with `$env:PORTFOLIO_DB_PATH` if other app
 
 ## Try this demo
 
-On a freshly seeded database:
+Nothing in the matching depends on the date: the household register, the service directory and its capacities are fixed seed content, so the scores, distances and places-left below are the same whatever day or time the seed runs. Referral IDs are the next free number, so the ID is read from the page. On a freshly seeded database:
 
-1. Open the app and stay on **Find a service**. Set Start from to **Household** (the demo opens on "Open service request") and choose `HH-00009` (Harbor Flats, household of 4).
+1. Open the app and stay on **Find a service**. Set Start from to **Household** (the demo opens on "Open service request") and choose `HH-00009` (Harbor Flats, household of 4). Before you start, open the **Referrals** tab once and note the **Support received** tile, then return to **Find a service**.
 2. Enter the need `My child has had a fever for three days and we need medicine.` and leave Category on "infer from the need text".
 3. **Expected:** category used is Health; the top match is **General clinic at Harbor Flats Health Point** (score 0.74, 1.4 km, 10 of 80 places left), explained as "Category match: health. Keywords found: fever. 1.4 km from Harbor Flats (the family's area centre). 10 of 80 places left this week. Eligibility: Free for all residents; children prioritised."
-4. Open the first match and click **Create referral from this match**. **Expected:** `REF-0031` created, status proposed.
-5. Go to the **Referrals** tab, open `REF-0031`, tick the confirmation box and click **Approve referral**. **Expected:** status approved, next step "Record the provider's response".
-6. Choose **accepted**, add a note, click **Record provider response**. **Expected:** status accepted.
-7. Choose **Yes** for "Did the family receive support?", tick the confirmation box, click **Confirm outcome**. **Expected:** `REF-0031` shows status **support_received**; filter by that status to see it listed.
-8. Optional: for a school-fee need with category Cash, "School fees support" appears under **Excluded services** (not accepting new referrals and no places left).
+4. Open the first match and click **Create referral from this match**. **Expected:** a message "Referral REF-... created with status proposed" (note the ID; it is the next free referral number).
+5. Go to the **Referrals** tab, open that referral, tick the confirmation box and click **Approve referral**. **Expected:** "REF-... approved by <staff>", status approved, next step "Record the provider's response". Clicking **Approve referral** without the tick changes nothing.
+6. Choose **accepted**, add a note, click **Record provider response**. **Expected:** status accepted, next step "Confirm whether the family received support".
+7. Choose **Yes** for "Did the family receive support?", tick the confirmation box, click **Confirm outcome**. **Expected:** the referral shows status **support_received** and the **Support received** tile is 1 higher than in step 1; filter by that status to see the referral listed first (newest first). The other tiles do not change.
+8. Optional: back on **Find a service**, for a school-fee need (`School fees for my two children`) with category Cash, "School fees support" appears under **Excluded services** (not accepting new referrals and no places left this week).
 
 ## Tests
 
