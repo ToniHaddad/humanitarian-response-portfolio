@@ -130,6 +130,23 @@ def test_log_incident_unverified_and_audited(conn: sqlite3.Connection) -> None:
     assert p15.suggestion_for_area(conn, "AR-05")["score"] == 0
 
 
+@pytest.mark.parametrize("nobody", [None, "", "  ", "NOPE-99"])
+def test_log_incident_refused_without_a_staff_confirmation(conn: sqlite3.Connection, nobody: str | None) -> None:
+    before = conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0]
+    with pytest.raises(confirm.ConfirmationRequired):
+        p15.log_incident(
+            conn,
+            area_id="AR-05",
+            incident_type="crime",
+            severity=3,
+            source="hotline",
+            occurred_at=NOW - timedelta(hours=1),
+            description="x",
+            reported_by=nobody,  # type: ignore[arg-type]
+        )
+    assert conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0] == before
+
+
 @pytest.mark.parametrize(
     "bad",
     [{"severity": 0}, {"severity": 6}, {"incident_type": "meteor"}, {"source": "rumour"}, {"description": "  "}, {"area_id": "AR-99"}],
@@ -228,3 +245,22 @@ def test_app_walkthrough_verify_then_override(app_test, db_path) -> None:  # noq
         assert tuple(row) == (2, 1, 1)
     finally:
         c.close()
+
+
+def test_app_log_incident_needs_the_tick_box(app_test, db_path) -> None:  # noqa: ANN001
+    def count() -> int:
+        c = db.connect(db_path)
+        try:
+            return c.execute("SELECT COUNT(*) FROM incidents").fetchone()[0]
+        finally:
+            c.close()
+
+    at = app_test(15).run()
+    assert not at.exception
+    before = count()
+    at.text_area(key="p15_f_desc").set_value("Checkpoint closed without notice.").run()
+    next(b for b in at.button if b.label == "Log incident (unverified)").click().run()
+    assert not at.exception and count() == before
+    at.checkbox(key="confirm_tick_p15_log").check()
+    next(b for b in at.button if b.label == "Log incident (unverified)").click().run()
+    assert not at.exception and count() == before + 1

@@ -25,7 +25,7 @@ The shared SQLite database: `incidents`, `advisories` (view `v_current_advisory`
 - Level 0 to 3 as in the shared rule. Scores use the app clock (`shared.clock`).
 - A decision stores the suggestion computed at the moment of the decision, with the rule version, score and incident IDs used. The previous active decision for the area is made inactive in the same transaction.
 - A decision equal to the suggestion is a confirmation (override flag 0); any other level is an override and needs a reason.
-- Only the `duty_officer` role (and admin) can verify, discount or decide. Anyone active can log a report.
+- Only the `duty_officer` role (and admin) can verify, discount or decide. Anyone active can log a report, through the same confirmation form (the confirming staff member is recorded as the reporter).
 
 ## Limitations
 - Local demo mode: a sidebar selector picks the acting staff member; there are no accounts.

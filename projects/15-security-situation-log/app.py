@@ -25,7 +25,6 @@ def level_label(level: int | None) -> str:
     return "No decision" if level is None else f"{level} {security.LEVEL_NAMES[level]}"
 
 
-acting = ui.staff_selector(("duty_officer", "field_worker"), key="p15_staff", label="Acting as (logging and verifying)")
 st.sidebar.caption(f"Demo clock: {NOW:%Y-%m-%d %H:%M}")
 
 with st.expander("How the suggested advisory level is worked out", expanded=False):
@@ -49,7 +48,11 @@ with db.transaction() as _conn:
     board = p15.status_board(_conn, NOW)
 
 # -- status board ---------------------------------------------------------
-ui.section("Area status board", "Current advisory, what the rule suggests now, and the reports still waiting for checking.")
+ui.section(
+    "Area status board",
+    "Current advisory, what the rule suggests now, and the reports still waiting for checking. Score is the weighted severity "
+    "of verified incidents; counts cover the last 7 days. Unverified reports are kept apart and never counted in the score.",
+)
 differing = [r["area_id"] for r in board if r["differs"]]
 ui.metric_row(
     [
@@ -63,20 +66,31 @@ board_df = pd.DataFrame(
     [
         {
             "Area": f"{r['area_id']} {r['area']}",
-            "Current advisory": r["current_name"] + (" (override)" if r["is_override"] else ""),
-            "Override reason": r["override_reason"] or "",
-            "Decided by": r["decided_by"] or "",
-            "Decided at": r["decided_at"] or "",
-            "Rule suggests now": f"{r['suggested_level']} {r['suggested_name']}",
-            "Score (weighted severity)": r["score"],
-            "Verified in 7 days (count)": r["verified_in_window"],
-            "Unverified, kept apart (count)": r["unverified_in_window"],
+            "Advisory now": r["current_name"] + (" (override)" if r["is_override"] else ""),
+            "Rule suggests": f"{r['suggested_level']} {r['suggested_name']}",
             "Differs": "DIFFERS" if r["differs"] else "",
+            "Score": r["score"],
+            "Verified (count)": r["verified_in_window"],
+            "Unverified (count)": r["unverified_in_window"],
         }
         for r in board
     ]
 )
 ui.table(board_df)
+with st.expander("Who decided each advisory, when, and any override reason"):
+    ui.table(
+        pd.DataFrame(
+            [
+                {
+                    "Area": f"{r['area_id']} {r['area']}",
+                    "Decided by": r["decided_by"] or "",
+                    "Decided at": r["decided_at"] or "",
+                    "Override reason": r["override_reason"] or "",
+                }
+                for r in board
+            ]
+        )
+    )
 if differing:
     st.warning("Suggestion differs from the current advisory in: " + ", ".join(differing) + ". Decide below.")
 
@@ -142,7 +156,27 @@ for tab, status in zip(tabs, ("verified", "unverified", "discounted"), strict=Tr
         )
         charts.apply_defaults(fig, "Time occurred", "Area", height=330)
         st.plotly_chart(fig, width="stretch", key=f"p15_chart_{status}")
-        ui.table(part.drop(columns=[] if status != "unverified" else ["verified_by", "verified_at"]))
+        cols = ["incident_id", "occurred_at", "area_id", "incident_type", "severity", "source"]
+        if status != "unverified":
+            cols += ["verified_by"]
+        view = part[cols].assign(description=part["description"].map(lambda t: t if len(t) <= 50 else t[:49].rstrip() + "…"))
+        ui.table(
+            view.rename(
+                columns={
+                    "incident_id": "Incident",
+                    "occurred_at": "Occurred at",
+                    "area_id": "Area",
+                    "incident_type": "Type",
+                    "severity": "Severity (1-5)",
+                    "source": "Source",
+                    "verified_by": "Verified by",
+                    "description": "Description (short)",
+                }
+            )
+        )
+        with st.expander(f"Full descriptions of the {status} incidents"):
+            for r in part.itertuples():
+                st.markdown(f"**{r.incident_id}** ({r.area_id}, {r.incident_type}): {r.description}")
 
 # -- verify or discount ---------------------------------------------------
 ui.section("Check reports", "A duty officer verifies or discounts an unverified report. Use the sidebar to choose who is acting.")
@@ -180,18 +214,23 @@ else:
 
 # -- log a new incident ---------------------------------------------------
 ui.section("Log an incident", "New reports start as unverified and do not change any suggestion until a duty officer verifies them.")
-with st.form("p15_log_form", clear_on_submit=False):
-    c1, c2, c3 = st.columns(3)
-    f_area = c1.selectbox("Area", list(by_id), format_func=lambda a: f"{a} {by_id[a]['area']}", key="p15_f_area")
-    f_type = c2.selectbox("Type", p15.INCIDENT_TYPE_LIST, key="p15_f_type")
-    f_sev = c3.slider("Severity (1 to 5)", 1, 5, 3, key="p15_f_sev")
-    c4, c5, c6 = st.columns(3)
-    f_source = c4.selectbox("Source", p15.SOURCES, key="p15_f_source")
-    f_date = c5.date_input("Date occurred", value=NOW.date(), key="p15_f_date")
-    f_time = c6.time_input("Time occurred", value=time(NOW.hour, NOW.minute), key="p15_f_time")
-    f_desc = st.text_area("Description", key="p15_f_desc")
-    submitted = st.form_submit_button("Log incident (unverified)")
-if submitted:
+c1, c2, c3 = st.columns(3)
+f_area = c1.selectbox("Area", list(by_id), format_func=lambda a: f"{a} {by_id[a]['area']}", key="p15_f_area")
+f_type = c2.selectbox("Type", p15.INCIDENT_TYPE_LIST, key="p15_f_type")
+f_sev = c3.slider("Severity (1 to 5)", 1, 5, 3, key="p15_f_sev")
+c4, c5, c6 = st.columns(3)
+f_source = c4.selectbox("Source", p15.SOURCES, key="p15_f_source")
+f_date = c5.date_input("Date occurred", value=NOW.date(), key="p15_f_date")
+f_time = c6.time_input("Time occurred", value=time(NOW.hour, NOW.minute), key="p15_f_time")
+f_desc = st.text_area("Description", key="p15_f_desc")
+reporter = ui.confirm_action(
+    "p15_log",
+    f"Log a new **{f_type}** report (severity {f_sev}, source {f_source}) for **{f_area} {by_id[f_area]['area']}** as unverified. "
+    "It changes no suggestion until a duty officer verifies it.",
+    roles=None,
+    button_label="Log incident (unverified)",
+)
+if reporter:
     try:
         with db.transaction() as conn:
             new_id = p15.log_incident(
@@ -202,8 +241,9 @@ if submitted:
                 source=f_source,
                 occurred_at=datetime.combine(f_date, f_time),
                 description=f_desc,
-                reported_by=acting or "",
+                reported_by=reporter,
             )
-        st.success(f"Logged {new_id} as unverified.")
+        st.session_state["p15_flash"] = f"Logged {new_id} as unverified, confirmed by {reporter}."
+        st.rerun()
     except Exception as exc:
-        st.error(str(exc))
+        st.error(f"Nothing was logged. {exc}")

@@ -43,7 +43,8 @@ def log_incident(
     description: str,
     reported_by: str,
 ) -> str:
-    """Log a new incident as unverified. Returns the incident ID."""
+    """Log a new incident as unverified. Returns the incident ID. Any active staff member may log; the confirmation is recorded."""
+    confirm.require_confirmation(conn, reported_by)
     if incident_type not in INCIDENT_TYPE_LIST:
         raise IncidentError(f"Unknown incident type: {incident_type}")
     if source not in SOURCES:
@@ -54,8 +55,6 @@ def log_incident(
         raise IncidentError("A description is required.")
     if conn.execute("SELECT 1 FROM areas WHERE area_id = ?", (area_id,)).fetchone() is None:
         raise IncidentError(f"Unknown area: {area_id}")
-    if conn.execute("SELECT 1 FROM staff WHERE staff_id = ? AND active = 1", (reported_by,)).fetchone() is None:
-        raise IncidentError(f"Unknown or inactive staff ID: {reported_by}")
     occurred = _fmt(occurred_at)
     if clock.parse(occurred) > clock.now():
         raise IncidentError("The incident cannot have occurred in the future.")
